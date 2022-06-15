@@ -239,6 +239,21 @@ class RiskSuperHandler(StreamingCommand):
                     # Load each JSON within the JSON array
                     # Add the very beginning of our pseudo event
 
+                    # Allow the search_name to be set as part the JSON object
+                    # If this is the case, this will override the previously set search_name value
+                    json_search_name = None
+                    for jsonSubObj in jsonObj:
+                        try:
+                            json_search_name = jsonSubObj['search_name']
+                        except Exception as e:
+                            logging.debug("No search_name was provided in the JSON object")
+
+                    # override if any
+                    if json_search_name:
+                        search_name = json_search_name
+                        logging.debug("search_name was overriden via the JSON dictionnary, search_name=\"{}\"".format(search_name))
+
+                    # Lookup through the dict again and proceed
                     for jsonSubObj in jsonObj:
                         logging.debug("jsonSubObj=\"{}\"".format(json.dumps(jsonSubObj, indent=1)))
 
