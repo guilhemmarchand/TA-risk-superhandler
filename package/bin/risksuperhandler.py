@@ -218,7 +218,7 @@ class RiskSuperHandler(StreamingCommand):
 
                 # process if we have a JSON rule object
                 if not jsonDict:
-                    logging.info("No lookup record match for use case uc_ref_field=\"{}\", risk action will not be actioned".format(record[self.uc_ref_field]))
+                    logging.info("No lookup record match for use case uc_ref_field=\"{}\", risk event creation will not be actioned".format(record[self.uc_ref_field]))
 
                 else:
                     # Attempt to load the json dict as a Python object
