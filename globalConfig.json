@@ -71,6 +71,29 @@
             "description": "Configure the Add-on"
         }
     },
+    "alerts": [
+        {
+            "name": "risk_super",
+            "label": "Risk Super action",
+            "description": "Generate a risk event using the Risk Super framework",
+            "entity": [
+                {
+                    "type": "text",
+                    "label": "Risk use case lookup path",
+                    "help": "The relative path to the CSV Risk lookup file, ex: SplunkEnterpriseSecurity/lookups/risk_advanced.csv",
+                    "field": "uc_lookup_path",
+                    "required": true
+                },
+                {
+                    "type": "text",
+                    "label": "Use case ref lookup field name",
+                    "help": "The name of the field in the use case lookup containing the reference for this risk rule",
+                    "field": "uc_ref_field",
+                    "required": true
+                }
+            ]
+        }
+    ],
     "meta": {
         "name": "TA-risk-superhandler",
         "restRoot": "ta_risk_superhandler",
