@@ -257,57 +257,70 @@ class RiskSuperHandler(StreamingCommand):
                     for jsonSubObj in jsonObj:
                         logging.debug("jsonSubObj=\"{}\"".format(json.dumps(jsonSubObj, indent=1)))
 
-                        # for each JSON rule, apply the risk - magic
-                        risk_object = jsonSubObj['risk_object']
-                        risk_object_type = jsonSubObj['risk_object_type']
-                        risk_score = jsonSubObj['risk_score']
-                        risk_message = jsonSubObj['risk_message']
+                        # Handle if the JSON object contains a risk rule
+                        jsonSubObjHasRisk = None
 
-                        # Allow a field to be provided as part of an mv structure by submitting a delimiter, if no delimiter assume the field is a regular
-                        # single value
                         try:
-                            format_separator = jsonSubObj['format_separator']
+                            risk_object = jsonSubObj['risk_object']
+                            jsonSubObjHasRisk = True
                         except Exception as e:
-                            format_separator = None
+                            jsonSubObjHasRisk = None
+                            logging.debug("jsonSubObj=\"{}\" does not include a risk JSON dictionnary".format(json.dumps(jsonSubObj, indent=1)))
 
-                        # log
-                        logging.info("risk rule loaded, risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\, risk_message=\"{}\", format_field=\"{}\"".format(risk_object, risk_object_type, risk_score, risk_message, format_separator))
+                        # Loop if we have a JSON risk rule
+                        if jsonSubObjHasRisk:
 
-                        # Execute a single search for optimisation purposes
+                            # for each JSON rule, apply the risk - magic
+                            risk_object = jsonSubObj['risk_object']
+                            risk_object_type = jsonSubObj['risk_object_type']
+                            risk_score = jsonSubObj['risk_score']
+                            risk_message = jsonSubObj['risk_message']
 
-                        # handle the format field
-                        if not format_separator:
+                            # Allow a field to be provided as part of an mv structure by submitting a delimiter, if no delimiter assume the field is a regular
+                            # single value
+                            try:
+                                format_separator = jsonSubObj['format_separator']
+                            except Exception as e:
+                                format_separator = None
 
                             # log
-                            logging.debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
+                            logging.info("risk rule loaded, risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\, risk_message=\"{}\", format_field=\"{}\"".format(risk_object, risk_object_type, risk_score, risk_message, format_separator))
 
-                            # Set the initial query
-                            if spl_count>1:
-                                splQuery = str(splQuery) + "\n" +\
-                                    "| append [ \n" + str(splQueryRoot) + "\n" +\
-                                    "| eval risk_object=\"" + record[risk_object] + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) + "\" ]\n"
-                            else:
-                                splQuery = str(splQueryRoot) + "\n" +\
-                                    "| eval risk_object=\"" + record[risk_object] + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) + "\"\n"
-                            spl_count+=1
+                            # Execute a single search for optimisation purposes
 
-                        else:
+                            # handle the format field
+                            if not format_separator:
 
-                            logging.debug("the risk object format is a multivalue format with seperator=\"{}\"".format(format_separator))
-                            risk_object_list = record[risk_object].split(format_separator)
+                                # log
+                                logging.debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
 
-                            for risk_subobject in risk_object_list:
-                                logging.debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
-
-                                # set the query
+                                # Set the initial query
                                 if spl_count>1:
                                     splQuery = str(splQuery) + "\n" +\
                                         "| append [ \n" + str(splQueryRoot) + "\n" +\
-                                        "| eval risk_object=\"" + str(risk_subobject) + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) + "\" ]\n"
+                                        "| eval risk_object=\"" + record[risk_object] + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) + "\" ]\n"
                                 else:
                                     splQuery = str(splQueryRoot) + "\n" +\
-                                        "| eval risk_object=\"" + str(risk_subobject) + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) + "\"\n"
+                                        "| eval risk_object=\"" + record[risk_object] + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) + "\"\n"
                                 spl_count+=1
+
+                            else:
+
+                                logging.debug("the risk object format is a multivalue format with seperator=\"{}\"".format(format_separator))
+                                risk_object_list = record[risk_object].split(format_separator)
+
+                                for risk_subobject in risk_object_list:
+                                    logging.debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
+
+                                    # set the query
+                                    if spl_count>1:
+                                        splQuery = str(splQuery) + "\n" +\
+                                            "| append [ \n" + str(splQueryRoot) + "\n" +\
+                                            "| eval risk_object=\"" + str(risk_subobject) + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) + "\" ]\n"
+                                    else:
+                                        splQuery = str(splQueryRoot) + "\n" +\
+                                            "| eval risk_object=\"" + str(risk_subobject) + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) + "\"\n"
+                                    spl_count+=1
 
                     #
                     # Run the search
