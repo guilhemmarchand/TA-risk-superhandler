@@ -132,12 +132,12 @@ class RiskSuperHandler(StreamingCommand):
         # If the JSON dictionnary is provided as an argument to the custom command        
         elif self.json_dict:
             jsonDict = str(self.json_dict)
-            logging.info("json_dict=\"{}\"".format(jsonDict))
+            logging.debug("json_dict=\"{}\"".format(jsonDict))
 
             # Attempt to load the json dict as a Python object
             try:
                 jsonObj = json.loads(jsonDict)
-                logging.info("jsonObj was loaded successfully")
+                logging.debug("jsonObj was loaded successfully")
             except Exception as e:
                 logging.error("Failure to load the json object with exception=\"{}\"".format(e))
 
@@ -176,7 +176,7 @@ class RiskSuperHandler(StreamingCommand):
                 # Extract the use case ref
                 try:       
                     uc_ref = record[self.uc_ref_field]
-                    logging.info("uc_ref=\"{}\"".format(uc_ref))
+                    logging.debug("uc_ref=\"{}\"".format(uc_ref))
                 except Exception as e:
                     logging.error("failed to retrieve the uc_ref from the upstream results")
 
@@ -218,15 +218,15 @@ class RiskSuperHandler(StreamingCommand):
 
                 # process if we have a JSON rule object
                 if not jsonDict:
-                    logging.warn("No lookup record match, risk action will not be actioned")
+                    logging.info("No lookup record match for use case uc_ref_field=\"{}\", risk action will not be actioned".format(record[self.uc_ref_field]))
 
                 else:
                     # Attempt to load the json dict as a Python object
                     try:
                         jsonObj = json.loads(jsonDict)
-                        logging.info("jsonObj was loaded successfully")
+                        logging.info("record match for use case uc_ref_field=\"{}\", risk_rules were loaded successfully, jsonObj=\"{}\"".format(record[self.uc_ref_field], json.dumps(jsonObj)))
                     except Exception as e:
-                        logging.error("Failure to load the json object with exception=\"{}\"".format(e))
+                        logging.error("Failure to load the json object, use case uc_ref_field=\"{}\", exception=\"{}\"".format(record[self.uc_ref_field], e))
 
                     #
                     # Set the search basis
@@ -240,7 +240,7 @@ class RiskSuperHandler(StreamingCommand):
                     # Add the very beginning of our pseudo event
 
                     for jsonSubObj in jsonObj:
-                        logging.info("jsonSubObj=\"{}\"".format(json.dumps(jsonSubObj, indent=1)))
+                        logging.debug("jsonSubObj=\"{}\"".format(json.dumps(jsonSubObj, indent=1)))
 
                         # for each JSON rule, apply the risk - magic
                         risk_object = jsonSubObj['risk_object']
@@ -264,7 +264,7 @@ class RiskSuperHandler(StreamingCommand):
                         if not format_separator:
 
                             # log
-                            logging.info("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
+                            logging.debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
 
                             # Set the initial query
                             if spl_count>1:
@@ -278,11 +278,11 @@ class RiskSuperHandler(StreamingCommand):
 
                         else:
 
-                            logging.info("the risk object format is a multivalue format with seperator=\"{}\"".format(format_separator))
+                            logging.debug("the risk object format is a multivalue format with seperator=\"{}\"".format(format_separator))
                             risk_object_list = record[risk_object].split(format_separator)
 
                             for risk_subobject in risk_object_list:
-                                logging.info("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
+                                logging.debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
 
                                 # set the query
                                 if spl_count>1:
