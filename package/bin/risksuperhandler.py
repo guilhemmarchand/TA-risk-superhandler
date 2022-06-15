@@ -187,6 +187,9 @@ class RiskSuperHandler(StreamingCommand):
                 # Start     
                 jsonDict = None
 
+                # This dict will be used to be provided to the risk command
+                jsonEmptyDict = []
+
                 if self.uc_lookup_path:
 
                     # Open the csv lookup
@@ -234,7 +237,7 @@ class RiskSuperHandler(StreamingCommand):
                     
                     splQueryRoot = "| makeresults | eval _raw=\"" + orig_raw.replace('\"', '\\\"') + "\" | spath | fields - _raw"
                     splQuery = ""
-                    spl_count = 1
+                    spl_count = 1                    
 
                     # Load each JSON within the JSON array
                     # Add the very beginning of our pseudo event
@@ -247,6 +250,42 @@ class RiskSuperHandler(StreamingCommand):
                             json_search_name = jsonSubObj['search_name']
                         except Exception as e:
                             logging.debug("No search_name was provided in the JSON object")
+
+                    # Hande the threat, will be added to the JSON object submitted in the risk param
+                    for jsonSubObj in jsonObj:
+                        json_risk_object = None
+                        json_threat_object = None
+
+                        try:
+                            risk_object = jsonSubObj['risk_object']
+                            risk_object_type = jsonSubObj['risk_object_type']
+                            risk_score = jsonSubObj['risk_score']
+                            risk_message = jsonSubObj['risk_message']
+                            json_risk_object = True
+                        except Exception as e:
+                            logging.debug("No risk object in jsonSubObj=\"{}\"".format(jsonSubObj))
+                            json_risk_object = None
+
+                        try:
+                            threat_object_field = jsonSubObj['threat_object_field']
+                            threat_object_type = jsonSubObj['threat_object_type']
+                            json_threat_object = True
+                        except Exception as e:
+                            logging.debug("No threat object in jsonSubObj=\"{}\"".format(jsonSubObj))
+                            json_threat_object = None
+
+                        # Add
+                        if json_risk_object:
+                            jsonEmptyDict.append({'risk_object_field': risk_object, 'risk_object_type': risk_object_type, 'risk_score': risk_score, 'risk_message': risk_message})
+                        elif json_threat_object:
+                            jsonEmptyDict.append({'threat_object_field': threat_object_field, 'threat_object_type': threat_object_type})
+
+                            # In addition, add the field/value to the root search
+                            splQueryRoot = splQueryRoot + "\n" +\
+                                "| eval threat_object=\"" + record[threat_object_field] + "\", threat_object_type=\"" + threat_object_field + "\""
+
+                    # log debug
+                    logging.debug("jsonEmptyDict=\"{}\"".format(json.dumps(jsonEmptyDict)))
 
                     # override if any
                     if json_search_name:
@@ -298,10 +337,12 @@ class RiskSuperHandler(StreamingCommand):
                                 if spl_count>1:
                                     splQuery = str(splQuery) + "\n" +\
                                         "| append [ \n" + str(splQueryRoot) + "\n" +\
-                                        "| eval risk_object=\"" + record[risk_object] + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) + "\" ]\n"
+                                        "| eval risk_object=\"" + record[risk_object] + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) +\
+                                        "\", risk_message=\"" + str(risk_message) + "\" | expandtoken ]\n"
                                 else:
                                     splQuery = str(splQueryRoot) + "\n" +\
-                                        "| eval risk_object=\"" + record[risk_object] + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) + "\"\n"
+                                        "| eval risk_object=\"" + record[risk_object] + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) +\
+                                        "\", risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
                                 spl_count+=1
 
                             else:
@@ -316,10 +357,12 @@ class RiskSuperHandler(StreamingCommand):
                                     if spl_count>1:
                                         splQuery = str(splQuery) + "\n" +\
                                             "| append [ \n" + str(splQueryRoot) + "\n" +\
-                                            "| eval risk_object=\"" + str(risk_subobject) + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) + "\" ]\n"
+                                            "| eval risk_object=\"" + str(risk_subobject) + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) +\
+                                            "\", risk_message=\"" + str(risk_message) + "\" | expandtoken ]\n"
                                     else:
                                         splQuery = str(splQueryRoot) + "\n" +\
-                                            "| eval risk_object=\"" + str(risk_subobject) + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) + "\"\n"
+                                            "| eval risk_object=\"" + str(risk_subobject) + "\", risk_score=\"" + str(risk_score) + "\", risk_object_type=\"" + str(risk_object_type) +\
+                                            "\", risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
                                     spl_count+=1
 
                     #
@@ -328,12 +371,13 @@ class RiskSuperHandler(StreamingCommand):
 
                     if spl_count>1:
 
+                        jsonEmptyStr = json.dumps(jsonEmptyDict)
+
                         # Terminate the search
                         splQuery = str(splQuery) + "\n" +\
-                            "| dedup risk_object, risk_object_type \n" +\
                             "| eval search_name=\"" + str(search_name) + "\"\n" +\
                             "| eval _key=search_name | lookup local=true correlationsearches_lookup _key OUTPUTNEW annotations, description as savedsearch_description | spathannotations" +\
-                            "| collectrisk search_name=\"" + str(search_name) + "\" risk_score=risk_score risk_object_field=risk_object risk_object_type=_risk_object_type risk_message=\"" + str(risk_message) + "\""
+                            "| risksupercollect search_name=\"" + str(search_name) + "\" risk_rules=\"" + jsonEmptyStr.replace("\"", "\\\"") + "\""
 
                         logging.debug("splQuery=\"{}\"".format(splQuery))
 
