@@ -447,7 +447,8 @@ class RiskSuperHandler(StreamingCommand):
 
             # loop through the dict
             for k in record:
-                logging.debug("field=\"{}\"".format(k))
+                # This debug is very noisy
+                # logging.debug("field=\"{}\"".format(k))
 
                 # if not our input field, and not _time
                 if k != '_time':
