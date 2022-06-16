@@ -47,6 +47,12 @@ import splunklib.results as results
 @Configuration()
 class RiskSuperHandler(StreamingCommand):
 
+    compatibility_mode = Option(
+        doc='''
+        **Syntax:** **Compatibility mode, valid options are: es64 | es65****
+        **Description:** In es64 mode, threats are generated manually, while in es65 this is supported OOTB''',
+        require=False, default="es65", validate=validators.Match("json_dict", r"^(es64|es65)$"))
+
     json_dict = Option(
         doc='''
         **Syntax:** **The json risk dictionnary****
@@ -252,6 +258,11 @@ class RiskSuperHandler(StreamingCommand):
                             logging.debug("No search_name was provided in the JSON object")
 
                     # Hande the threat, will be added to the JSON object submitted in the risk param
+
+                    # for es64 compatibility purposes, store type of object in a list
+                    threat_objects_list = []
+                    threat_objects_type_list = []
+
                     for jsonSubObj in jsonObj:
                         json_risk_object = None
                         json_threat_object = None
@@ -268,7 +279,11 @@ class RiskSuperHandler(StreamingCommand):
 
                         try:
                             threat_object_field = jsonSubObj['threat_object_field']
+                            threat_objects_list.append(record[threat_object_field])
+                            logging.debug("threat_objects_list=\"{}\"".format(threat_objects_list))
                             threat_object_type = jsonSubObj['threat_object_type']
+                            threat_objects_type_list.append(threat_object_type)
+                            logging.debug("threat_objects_type_list=\"{}\"".format(threat_objects_type_list))
                             json_threat_object = True
                         except Exception as e:
                             logging.debug("No threat object in jsonSubObj=\"{}\"".format(jsonSubObj))
@@ -343,6 +358,14 @@ class RiskSuperHandler(StreamingCommand):
                                         "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
                                 spl_count+=1
 
+                                # If running in pre threat compatible mode, force include the threat_object and threat_object_type fields
+                                if self.compatibility_mode == 'es64' and len(threat_objects_list) and len(threat_objects_type_list):
+                                    threat_objects_str = "|".join(threat_objects_list)
+                                    threat_objects_type_str = "|".join(threat_objects_type_list)
+                                    splQuery = splQuery + "\n" +\
+                                        "| eval threat_object=\"" + threat_objects_str +\
+                                        "\", threat_object_type=\"" + threat_objects_type_str + "\" | makemv delim=\"|\" threat_object | makemv delim=\"|\" threat_object_type"
+
                             else:
 
                                 logging.debug("the risk object format is a multivalue format with seperator=\"{}\"".format(format_separator))
@@ -360,6 +383,14 @@ class RiskSuperHandler(StreamingCommand):
                                         splQuery = str(splQueryRoot) + "\n" +\
                                             "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
                                     spl_count+=1
+
+                                    # If running in pre threat compatible mode, force include the threat_object and threat_object_type fields
+                                    if self.compatibility_mode == 'es64' and len(threat_objects_list) and len(threat_objects_type_list):
+                                        threat_objects_str = "|".join(threat_objects_list)
+                                        threat_objects_type_str = "|".join(threat_objects_type_list)
+                                        splQuery = splQuery + "\n" +\
+                                            "| eval threat_object=\"" + threat_objects_str +\
+                                            "\", threat_object_type=\"" + threat_objects_type_str + "\" | makemv delim=\"|\" threat_object | makemv delim=\"|\" threat_object_type"
 
                     #
                     # Run the search
