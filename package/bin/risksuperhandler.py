@@ -346,11 +346,11 @@ class RiskSuperHandler(StreamingCommand):
                                 if spl_count>1:
                                     splQuery = str(splQuery) + "\n" +\
                                         "| append [ \n" + str(splQueryRoot) + "\n" +\
-                                        "| eval risk_object=\"" + str(risk_object) + "\", risk_object_type=\"" + str(risk_object_type)+ "\", risk_score=\"" + str(risk_score) + "\"\n" +\
+                                        "| eval risk_object=\"" + record[risk_object] + "\", risk_object_type=\"" + str(risk_object_type)+ "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                         "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken ]\n"
                                 else:
                                     splQuery = str(splQueryRoot) + "\n" +\
-                                        "| eval risk_object=\"" + str(risk_object) + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
+                                        "| eval risk_object=\"" + record[risk_object] + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                         "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
                                 spl_count+=1
 
@@ -374,11 +374,11 @@ class RiskSuperHandler(StreamingCommand):
                                     if spl_count>1:
                                         splQuery = str(splQuery) + "\n" +\
                                             "| append [ \n" + str(splQueryRoot) + "\n" +\
-                                            "| eval risk_object=\"" + str(risk_subobject) + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
+                                            "| eval risk_object=\"" + record[risk_subobject] + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                             "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken ]\n"
                                     else:
                                         splQuery = str(splQueryRoot) + "\n" +\
-                                            "| eval risk_object=\"" + str(risk_subobject) + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
+                                            "| eval risk_object=\"" + record[risk_subobject] + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                             "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
                                     spl_count+=1
 
