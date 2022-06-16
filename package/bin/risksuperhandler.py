@@ -47,12 +47,6 @@ import splunklib.results as results
 @Configuration()
 class RiskSuperHandler(StreamingCommand):
 
-    compatibility_mode = Option(
-        doc='''
-        **Syntax:** **Compatibility mode, valid options are: es64 | es65****
-        **Description:** In es64 mode, threats are generated manually, while in es65 this is supported OOTB''',
-        require=False, default="es65", validate=validators.Match("json_dict", r"^(es64|es65)$"))
-
     json_dict = Option(
         doc='''
         **Syntax:** **The json risk dictionnary****
@@ -352,14 +346,16 @@ class RiskSuperHandler(StreamingCommand):
                                 if spl_count>1:
                                     splQuery = str(splQuery) + "\n" +\
                                         "| append [ \n" + str(splQueryRoot) + "\n" +\
+                                        "| eval risk_object=\"" + str(risk_object) + "\", risk_object_type=\"" + str(risk_object_type)+ "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                         "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken ]\n"
                                 else:
                                     splQuery = str(splQueryRoot) + "\n" +\
+                                        "| eval risk_object=\"" + str(risk_object) + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                         "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
                                 spl_count+=1
 
                                 # If running in pre threat compatible mode, force include the threat_object and threat_object_type fields
-                                if self.compatibility_mode == 'es64' and len(threat_objects_list) and len(threat_objects_type_list):
+                                if len(threat_objects_list) and len(threat_objects_type_list):
                                     threat_objects_str = "|".join(threat_objects_list)
                                     threat_objects_type_str = "|".join(threat_objects_type_list)
                                     splQuery = splQuery + "\n" +\
@@ -378,14 +374,16 @@ class RiskSuperHandler(StreamingCommand):
                                     if spl_count>1:
                                         splQuery = str(splQuery) + "\n" +\
                                             "| append [ \n" + str(splQueryRoot) + "\n" +\
+                                            "| eval risk_object=\"" + str(risk_subobject) + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                             "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken ]\n"
                                     else:
                                         splQuery = str(splQueryRoot) + "\n" +\
+                                            "| eval risk_object=\"" + str(risk_subobject) + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                             "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
                                     spl_count+=1
 
-                                    # If running in pre threat compatible mode, force include the threat_object and threat_object_type fields
-                                    if self.compatibility_mode == 'es64' and len(threat_objects_list) and len(threat_objects_type_list):
+                                    # Manually create the threats fields (if any)
+                                    if len(threat_objects_list) and len(threat_objects_type_list):
                                         threat_objects_str = "|".join(threat_objects_list)
                                         threat_objects_type_str = "|".join(threat_objects_type_list)
                                         splQuery = splQuery + "\n" +\
@@ -404,7 +402,7 @@ class RiskSuperHandler(StreamingCommand):
                         splQuery = str(splQuery) + "\n" +\
                             "| eval search_name=\"" + str(search_name) + "\"\n" +\
                             "| eval _key=search_name | lookup local=true correlationsearches_lookup _key OUTPUTNEW annotations, description as savedsearch_description | spathannotations" +\
-                            "| collectrisk search_name=\"" + str(search_name) + "\" risk=\"" + jsonEmptyStr.replace("\"", "\\\"") + "\""
+                            "| collectrisk search_name=\"" + str(search_name) + "\""
 
                         logging.debug("splQuery=\"{}\"".format(splQuery))
 
