@@ -2,39 +2,14 @@
 
 def process_event(helper, *args, **kwargs):
     """
-    # IMPORTANT
-    # Do not remove the anchor macro:start and macro:end lines.
-    # These lines are used to generate sample code. If they are
-    # removed, the sample code will not be updated when configurations
-    # are updated.
+    __author__ = "Guilhem Marchand"
+    __email___ = "gmarchand@splunk.com"
+    __version__ = "0.1.0"
+    __status__ = "PRODUCTION"
 
-    [sample_code_macro:start]
-
-    # The following example gets the alert action parameters and prints them to the log
-    uc_lookup_path = helper.get_param("uc_lookup_path")
-    helper.log_info("uc_lookup_path={}".format(uc_lookup_path))
-
-    uc_ref_field = helper.get_param("uc_ref_field")
-    helper.log_info("uc_ref_field={}".format(uc_ref_field))
-
-
-    # The following example adds two sample events ("hello", "world")
-    # and writes them to Splunk
-    # NOTE: Call helper.writeevents() only once after all events
-    # have been added
-    helper.addevent("hello", sourcetype="sample_sourcetype")
-    helper.addevent("world", sourcetype="sample_sourcetype")
-    helper.writeevents(index="summary", host="localhost", source="localhost")
-
-    # The following example gets the events that trigger the alert
-    events = helper.get_events()
-    for event in events:
-        helper.log_info("event={}".format(event))
-
-    # helper.settings is a dict that includes environment configuration
-    # Example usage: helper.settings["server_uri"]
-    helper.log_info("server_uri={}".format(helper.settings["server_uri"]))
-    [sample_code_macro:end]
+    Note: There are some differences between the custom command code and the mod alert handler, especially mv fields
+    are provided differently from the alert action (structure __mv_<field name>) and require the usage a CIM module, while
+    in the context of the custom command fields are transparently handled as lists if in a mv format
     """
 
     helper.log_info("Alert action risk_super started.")
@@ -62,6 +37,10 @@ def process_event(helper, *args, **kwargs):
     from splunklib import six
     import splunklib.client as client
     import splunklib.results as results
+
+    # import cim_modactions
+    modaction_path = os.path.join(splunkhome, "etc", "apps", "Splunk_SA_CIM", "lib", "cim_actions.py")
+    import cim_actions
 
     # Retrieve the session_key
     helper.log_debug("Get session_key.")
@@ -152,6 +131,7 @@ def process_event(helper, *args, **kwargs):
                 helper.log_debug("uc_ref=\"{}\"".format(uc_ref))
             except Exception as e:
                 helper.log_error("failed to retrieve the uc_ref from the upstream results")
+                return 1
 
             ####################        
             # Get the JSON dict
@@ -245,9 +225,25 @@ def process_event(helper, *args, **kwargs):
                         helper.log_debug("threat_object_field=\"{}\"".format(threat_object_field))
 
                         # check if this is a list itself
-                        if type(record[threat_object_field]) == list:
+
+                        # check an mv field exist for this
+                        threat_object_mv_field = []
+                        try:
+                            threat_object_mv_field = cim_actions.parse_mv(record["__mv_" + str(threat_object_field)])                       
+                            helper.log_debug("threat_object is an mv field, threat_object_mv_field=\"{}\"".format(threat_object_mv_field))
+
+                        except Exception as e:
+                            helper.log_debug("threat_object_field was not found in a mv format, exception=\"{}\"".format(e))
+
+                        # Handle all options
+                        if len(threat_object_mv_field)>0:
+                            for sub_threat_object in threat_object_mv_field:
+                                threat_objects_list.append(sub_threat_object)                            
+                            
+                        elif type(record[threat_object_field]) == list:
                             for sub_threat_object in record[threat_object_field]:
                                 threat_objects_list.append(sub_threat_object)
+
                         else:
                             threat_objects_list.append(record[threat_object_field])
                         helper.log_debug("threat_objects_list=\"{}\"".format(threat_objects_list))
