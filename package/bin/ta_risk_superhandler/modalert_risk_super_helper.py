@@ -326,7 +326,7 @@ def process_event(helper, *args, **kwargs):
                             helper.log_debug("risk_object was not found in a mv format, exception=\"{}\"".format(e))
 
                         # handle the format field
-                        if not format_separator and len(risk_object_mv_field) == 0:
+                        if not format_separator and len(risk_object_mv_field) == 0 and type(record[risk_object]) != list:
 
                             # log
                             helper.log_debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))

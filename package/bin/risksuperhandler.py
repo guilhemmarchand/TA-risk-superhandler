@@ -45,6 +45,10 @@ from splunklib import six
 import splunklib.client as client
 import splunklib.results as results
 
+# import cim_modactions
+sys.path.append(os.path.join(splunkhome, "etc", "apps", "Splunk_SA_CIM", "lib"))
+import cim_actions
+
 @Configuration()
 class RiskSuperHandler(StreamingCommand):
 
@@ -290,9 +294,25 @@ class RiskSuperHandler(StreamingCommand):
                             logging.debug("threat_object_field=\"{}\"".format(threat_object_field))
 
                             # check if this is a list itself
-                            if type(record[threat_object_field]) == list:
+
+                            # check an mv field exist for this
+                            threat_object_mv_field = []
+                            try:
+                                threat_object_mv_field = cim_actions.parse_mv(record["__mv_" + str(threat_object_field)])                       
+                                logging.debug("threat_object is an mv field, threat_object_mv_field=\"{}\"".format(threat_object_mv_field))
+
+                            except Exception as e:
+                                logging.debug("threat_object_field was not found in a mv format, exception=\"{}\"".format(e))
+
+                            # Handle all options
+                            if len(threat_object_mv_field)>0:
+                                for sub_threat_object in threat_object_mv_field:
+                                    threat_objects_list.append(sub_threat_object)                            
+                                
+                            elif type(record[threat_object_field]) == list:
                                 for sub_threat_object in record[threat_object_field]:
                                     threat_objects_list.append(sub_threat_object)
+
                             else:
                                 threat_objects_list.append(record[threat_object_field])
                             logging.debug("threat_objects_list=\"{}\"".format(threat_objects_list))
@@ -359,8 +379,23 @@ class RiskSuperHandler(StreamingCommand):
 
                             # Execute a single search for optimisation purposes
 
+                            # The risk_object value can be provided in 3 options:
+                            # - as a single value
+                            # - in a mv structured (__mv_risk_object)
+                            # - in a native list
+                            # - in a pseudo mv structured to be expanded, via a string delimiter
+
+                            # check an mv field exist for this
+                            risk_object_mv_field = []
+                            try:
+                                risk_object_mv_field = cim_actions.parse_mv(record["__mv_" + str(risk_object)])                       
+                                logging.debug("risk_object is an mv field, risk_object_mv_field=\"{}\"".format(risk_object_mv_field))
+
+                            except Exception as e:
+                                logging.debug("risk_object was not found in a mv format, exception=\"{}\"".format(e))
+
                             # handle the format field
-                            if not format_separator:
+                            if not format_separator and len(risk_object_mv_field) == 0 and type(record[risk_object]) != list:
 
                                 # log
                                 logging.debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
@@ -387,8 +422,19 @@ class RiskSuperHandler(StreamingCommand):
 
                             else:
 
-                                logging.debug("the risk object format is a multivalue format with seperator=\"{}\"".format(format_separator))
-                                risk_object_list = record[risk_object].split(format_separator)
+                                logging.debug("the risk object format is a multivalue format")
+                                
+                                # if from an __mv_risk_object field
+                                if len(risk_object_mv_field) > 0:
+                                    risk_object_list = risk_object_mv_field
+
+                                # or via the seperator in single value string separated
+                                elif format_separator:                            
+                                    risk_object_list = record[risk_object].split(format_separator)
+
+                                # stored in a native list
+                                else:
+                                    risk_object_list = record[risk_object]
 
                                 for risk_subobject in risk_object_list:
                                     logging.debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
@@ -397,11 +443,11 @@ class RiskSuperHandler(StreamingCommand):
                                     if spl_count>1:
                                         splQuery = str(splQuery) + "\n" +\
                                             "| append [ \n" + str(splQueryRoot) + "\n" +\
-                                            "| eval risk_object=\"" + record[risk_subobject] + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
+                                            "| eval risk_object=\"" + str(risk_subobject) + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                             "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken ]\n"
                                     else:
                                         splQuery = str(splQueryRoot) + "\n" +\
-                                            "| eval risk_object=\"" + record[risk_subobject] + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
+                                            "| eval risk_object=\"" + str(risk_subobject) + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                             "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
                                     spl_count+=1
 
