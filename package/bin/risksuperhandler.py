@@ -15,6 +15,7 @@ import splunk
 import splunk.entity
 import time
 import json
+import tempfile
 from collections import OrderedDict
 import ast
 import csv
@@ -149,10 +150,20 @@ class RiskSuperHandler(StreamingCommand):
         for record in records:
 
             # log debug
-            logging.debug("record=\{}\"".format(record))
+            logging.debug("record=\"{}\"".format(json.dumps(record)))
 
-            # To be recycled in the next phases
-            orig_raw = json.dumps(record)
+            # Write to a tempfile
+            # Get tempdir
+            tempdir = os.path.join(splunkhome, 'etc', 'apps', 'TA-risk-superhandler', 'tmp')
+            if not os.path.isdir(tempdir):
+                os.mkdir(tempdir)
+
+            # Set the temp file
+            results_json = tempfile.NamedTemporaryFile(mode='w+t', prefix="splunk_alert_results_" + str(time.time()) + "_", suffix='.json', dir=tempdir, delete=False)      
+
+            # Write our json record
+            results_json.writelines(json.dumps(record))
+            results_json.seek(0)
 
             # Get the search_name
             try:
@@ -234,10 +245,11 @@ class RiskSuperHandler(StreamingCommand):
                     #
                     # Set the search basis
                     #
-                    
-                    splQueryRoot = "| makeresults | eval _raw=\"" + orig_raw.replace('\"', '\\\"') + "\" | spath | fields - _raw"
+
+                    splQueryRoot = "| riskjsonload json_path=\"" + results_json.name + "\" | spath | rename \"*{}\" as \"*\""
+                    logging.debug("splQueryRoot=\"{}\"".format(splQueryRoot))
                     splQuery = ""
-                    spl_count = 1                    
+                    spl_count = 1
 
                     # Load each JSON within the JSON array
                     # Add the very beginning of our pseudo event
@@ -253,7 +265,7 @@ class RiskSuperHandler(StreamingCommand):
 
                     # Hande the threat, will be added to the JSON object submitted in the risk param
 
-                    # for es64 compatibility purposes, store type of object in a list
+                    # Store type of object in a list
                     threat_objects_list = []
                     threat_objects_type_list = []
 
@@ -272,13 +284,28 @@ class RiskSuperHandler(StreamingCommand):
                             json_risk_object = None
 
                         try:
+
+                            # Handle threat_object_field
                             threat_object_field = jsonSubObj['threat_object_field']
-                            threat_objects_list.append(record[threat_object_field])
+                            logging.debug("threat_object_field=\"{}\"".format(threat_object_field))
+
+                            # check if this is a list itself
+                            if type(record[threat_object_field]) == list:
+                                for sub_threat_object in record[threat_object_field]:
+                                    threat_objects_list.append(sub_threat_object)
+                            else:
+                                threat_objects_list.append(record[threat_object_field])
                             logging.debug("threat_objects_list=\"{}\"".format(threat_objects_list))
+
+                            # Handle threat_object_type
                             threat_object_type = jsonSubObj['threat_object_type']
+                            logging.debug("threat_object_type=\"{}\"".format(threat_object_type))
                             threat_objects_type_list.append(threat_object_type)
                             logging.debug("threat_objects_type_list=\"{}\"".format(threat_objects_type_list))
+
+                            # Boolean
                             json_threat_object = True
+
                         except Exception as e:
                             logging.debug("No threat object in jsonSubObj=\"{}\"".format(jsonSubObj))
                             json_threat_object = None
@@ -288,10 +315,6 @@ class RiskSuperHandler(StreamingCommand):
                             jsonEmptyDict.append({'risk_object_field': risk_object, 'risk_object_type': risk_object_type, 'risk_score': risk_score, 'risk_message': risk_message})
                         elif json_threat_object:
                             jsonEmptyDict.append({'threat_object_field': threat_object_field, 'threat_object_type': threat_object_type})
-
-                            # In addition, add the field/value to the root search
-                            #splQueryRoot = splQueryRoot + "\n" +\
-                            #    "| eval threat_object=\"" + record[threat_object_field] + "\", threat_object_type=\"" + threat_object_field + "\""
 
                     # log debug
                     logging.debug("jsonEmptyDict=\"{}\"".format(json.dumps(jsonEmptyDict)))
@@ -359,7 +382,7 @@ class RiskSuperHandler(StreamingCommand):
                                     threat_objects_str = "|".join(threat_objects_list)
                                     threat_objects_type_str = "|".join(threat_objects_type_list)
                                     splQuery = splQuery + "\n" +\
-                                        "| eval threat_object=\"" + threat_objects_str +\
+                                        "| eval threat_object=\"" + threat_objects_str.replace('"', '\\\"') +\
                                         "\", threat_object_type=\"" + threat_objects_type_str + "\" | makemv delim=\"|\" threat_object | makemv delim=\"|\" threat_object_type"
 
                             else:
@@ -396,8 +419,6 @@ class RiskSuperHandler(StreamingCommand):
 
                     if spl_count>1:
 
-                        jsonEmptyStr = json.dumps(jsonEmptyDict)
-
                         # Terminate the search
                         splQuery = str(splQuery) + "\n" +\
                             "| eval search_name=\"" + str(search_name) + "\"\n" +\
@@ -427,6 +448,10 @@ class RiskSuperHandler(StreamingCommand):
             # Initial exception handler
             except Exception as e:
                 logging.error("An exception was encountered while processing the risk actions, exception=\"{}\"".format(e))
+
+            # close and delete transparently
+            finally:
+                results_json.close()
 
             #
             # Final

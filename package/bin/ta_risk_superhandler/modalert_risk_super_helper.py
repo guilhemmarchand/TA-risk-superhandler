@@ -44,6 +44,7 @@ def process_event(helper, *args, **kwargs):
     import json
     import csv
     import time
+    import tempfile
     import requests
     import os, sys
     import splunklib.client as client
@@ -102,11 +103,29 @@ def process_event(helper, *args, **kwargs):
 
     # Loop through the results
     records = helper.get_events()
-    for record in records:
-        helper.log_debug("record={}".format(record))
 
-        # To be recycled in the next phases
-        orig_raw = json.dumps(record)
+    #################################################################
+    # Loop through the records and proceed
+    # The custom command does not alter the original search results #    
+    #################################################################
+
+    for record in records:
+
+        # log debug
+        helper.log_debug("record=\"{}\"".format(json.dumps(record)))
+
+        # Write to a tempfile
+        # Get tempdir
+        tempdir = os.path.join(splunkhome, 'etc', 'apps', 'TA-risk-superhandler', 'tmp')
+        if not os.path.isdir(tempdir):
+            os.mkdir(tempdir)
+
+        # Set the temp file
+        results_json = tempfile.NamedTemporaryFile(mode='w+t', prefix="splunk_alert_results_" + str(time.time()) + "_", suffix='.json', dir=tempdir, delete=False)      
+
+        # Write our json record
+        results_json.writelines(json.dumps(record))
+        results_json.seek(0)
 
         # Get the search_name
         try:
@@ -181,10 +200,11 @@ def process_event(helper, *args, **kwargs):
                 #
                 # Set the search basis
                 #
-                
-                splQueryRoot = "| makeresults | eval _raw=\"" + orig_raw.replace('\"', '\\\"') + "\" | spath | fields - _raw"
+
+                splQueryRoot = "| riskjsonload json_path=\"" + results_json.name + "\" | spath | rename \"*{}\" as \"*\""
+                helper.log_debug("splQueryRoot=\"{}\"".format(splQueryRoot))
                 splQuery = ""
-                spl_count = 1                    
+                spl_count = 1
 
                 # Load each JSON within the JSON array
                 # Add the very beginning of our pseudo event
@@ -199,6 +219,11 @@ def process_event(helper, *args, **kwargs):
                         helper.log_debug("No search_name was provided in the JSON object")
 
                 # Hande the threat, will be added to the JSON object submitted in the risk param
+
+                # Store type of object in a list
+                threat_objects_list = []
+                threat_objects_type_list = []
+
                 for jsonSubObj in jsonObj:
                     json_risk_object = None
                     json_threat_object = None
@@ -214,9 +239,28 @@ def process_event(helper, *args, **kwargs):
                         json_risk_object = None
 
                     try:
+
+                        # Handle threat_object_field
                         threat_object_field = jsonSubObj['threat_object_field']
+                        helper.log_debug("threat_object_field=\"{}\"".format(threat_object_field))
+
+                        # check if this is a list itself
+                        if type(record[threat_object_field]) == list:
+                            for sub_threat_object in record[threat_object_field]:
+                                threat_objects_list.append(sub_threat_object)
+                        else:
+                            threat_objects_list.append(record[threat_object_field])
+                        helper.log_debug("threat_objects_list=\"{}\"".format(threat_objects_list))
+
+                        # Handle threat_object_type
                         threat_object_type = jsonSubObj['threat_object_type']
+                        helper.log_debug("threat_object_type=\"{}\"".format(threat_object_type))
+                        threat_objects_type_list.append(threat_object_type)
+                        helper.log_debug("threat_objects_type_list=\"{}\"".format(threat_objects_type_list))
+
+                        # Boolean
                         json_threat_object = True
+
                     except Exception as e:
                         helper.log_debug("No threat object in jsonSubObj=\"{}\"".format(jsonSubObj))
                         json_threat_object = None
@@ -226,10 +270,6 @@ def process_event(helper, *args, **kwargs):
                         jsonEmptyDict.append({'risk_object_field': risk_object, 'risk_object_type': risk_object_type, 'risk_score': risk_score, 'risk_message': risk_message})
                     elif json_threat_object:
                         jsonEmptyDict.append({'threat_object_field': threat_object_field, 'threat_object_type': threat_object_type})
-
-                        # In addition, add the field/value to the root search
-                        #splQueryRoot = splQueryRoot + "\n" +\
-                        #    "| eval threat_object=\"" + record[threat_object_field] + "\", threat_object_type=\"" + threat_object_field + "\""
 
                 # log debug
                 helper.log_debug("jsonEmptyDict=\"{}\"".format(json.dumps(jsonEmptyDict)))
@@ -284,11 +324,21 @@ def process_event(helper, *args, **kwargs):
                             if spl_count>1:
                                 splQuery = str(splQuery) + "\n" +\
                                     "| append [ \n" + str(splQueryRoot) + "\n" +\
+                                    "| eval risk_object=\"" + record[risk_object] + "\", risk_object_type=\"" + str(risk_object_type)+ "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                     "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken ]\n"
                             else:
                                 splQuery = str(splQueryRoot) + "\n" +\
+                                    "| eval risk_object=\"" + record[risk_object] + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                     "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
                             spl_count+=1
+
+                            # If running in pre threat compatible mode, force include the threat_object and threat_object_type fields
+                            if len(threat_objects_list) and len(threat_objects_type_list):
+                                threat_objects_str = "|".join(threat_objects_list)
+                                threat_objects_type_str = "|".join(threat_objects_type_list)
+                                splQuery = splQuery + "\n" +\
+                                    "| eval threat_object=\"" + threat_objects_str.replace('"', '\\\"') +\
+                                    "\", threat_object_type=\"" + threat_objects_type_str + "\" | makemv delim=\"|\" threat_object | makemv delim=\"|\" threat_object_type"
 
                         else:
 
@@ -302,11 +352,21 @@ def process_event(helper, *args, **kwargs):
                                 if spl_count>1:
                                     splQuery = str(splQuery) + "\n" +\
                                         "| append [ \n" + str(splQueryRoot) + "\n" +\
+                                        "| eval risk_object=\"" + record[risk_subobject] + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                         "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken ]\n"
                                 else:
                                     splQuery = str(splQueryRoot) + "\n" +\
+                                        "| eval risk_object=\"" + record[risk_subobject] + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
                                         "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
                                 spl_count+=1
+
+                                # Manually create the threats fields (if any)
+                                if len(threat_objects_list) and len(threat_objects_type_list):
+                                    threat_objects_str = "|".join(threat_objects_list)
+                                    threat_objects_type_str = "|".join(threat_objects_type_list)
+                                    splQuery = splQuery + "\n" +\
+                                        "| eval threat_object=\"" + threat_objects_str +\
+                                        "\", threat_object_type=\"" + threat_objects_type_str + "\" | makemv delim=\"|\" threat_object | makemv delim=\"|\" threat_object_type"
 
                 #
                 # Run the search
@@ -314,13 +374,11 @@ def process_event(helper, *args, **kwargs):
 
                 if spl_count>1:
 
-                    jsonEmptyStr = json.dumps(jsonEmptyDict)
-
                     # Terminate the search
                     splQuery = str(splQuery) + "\n" +\
                         "| eval search_name=\"" + str(search_name) + "\"\n" +\
                         "| eval _key=search_name | lookup local=true correlationsearches_lookup _key OUTPUTNEW annotations, description as savedsearch_description | spathannotations" +\
-                        "| collectrisk search_name=\"" + str(search_name) + "\" risk=\"" + jsonEmptyStr.replace("\"", "\\\"") + "\""
+                        "| collectrisk search_name=\"" + str(search_name) + "\""
 
                     helper.log_debug("splQuery=\"{}\"".format(splQuery))
 
@@ -345,5 +403,9 @@ def process_event(helper, *args, **kwargs):
         # Initial exception handler
         except Exception as e:
             helper.log_error("An exception was encountered while processing the risk actions, exception=\"{}\"".format(e))
+
+        # close and delete transparently
+        finally:
+            results_json.close()
 
     return 0
