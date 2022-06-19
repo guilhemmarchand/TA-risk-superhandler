@@ -88,29 +88,30 @@ def process_event(helper, *args, **kwargs):
     # The custom command does not alter the original search results #    
     #################################################################
 
+    # Write to a tempfile
+    # Get tempdir
+    tempdir = os.path.join(splunkhome, 'etc', 'apps', 'TA-risk-superhandler', 'tmp')
+    if not os.path.isdir(tempdir):
+        os.mkdir(tempdir)
+
+    results_json = tempfile.NamedTemporaryFile(mode='w+t', prefix="splunk_alert_results_" + str(time.time()) + "_test_", suffix='.json', dir=tempdir, delete=False)
+
+    all_new_records = []
+
     for record in records:
+
+        # Our new record dict
+        new_record = {}
 
         # log debug
         helper.log_debug("record=\"{}\"".format(json.dumps(record)))
-
-        # Write to a tempfile
-        # Get tempdir
-        tempdir = os.path.join(splunkhome, 'etc', 'apps', 'TA-risk-superhandler', 'tmp')
-        if not os.path.isdir(tempdir):
-            os.mkdir(tempdir)
-
-        # Set the temp file
-        results_json = tempfile.NamedTemporaryFile(mode='w+t', prefix="splunk_alert_results_" + str(time.time()) + "_", suffix='.json', dir=tempdir, delete=False)      
-
-        # Write our json record
-        results_json.writelines(json.dumps(record))
-        results_json.seek(0)
 
         # Get the search_name
         try:
             search_name = record['search_name']
         except Exception as e:
             search_name = "Adhoc risk"
+            new_record['search_name'] = search_name
 
         ########################
 
@@ -131,7 +132,6 @@ def process_event(helper, *args, **kwargs):
                 helper.log_debug("uc_ref=\"{}\"".format(uc_ref))
             except Exception as e:
                 helper.log_error("failed to retrieve the uc_ref from the upstream results")
-                return 1
 
             ####################        
             # Get the JSON dict
@@ -143,27 +143,29 @@ def process_event(helper, *args, **kwargs):
             # This dict will be used to be provided to the risk command
             jsonEmptyDict = []
 
-            # Open the csv lookup
-            csv_file = open(csv_dict_file, "r")
-            readCSV = csv.DictReader(csv_file, delimiter=str(u','), quotechar=str(u'"'))
+            if uc_lookup_path:
 
-            # log
-            helper.log_debug("csv_data=\"{}\"".format(readCSV))
-
-            # Loop
-            for row in readCSV:
+                # Open the csv lookup
+                csv_file = open(csv_dict_file, "r")
+                readCSV = csv.DictReader(csv_file, delimiter=str(u','), quotechar=str(u'"'))
 
                 # log
-                helper.log_debug("In lookup row=\"{}\"".format(row))
-                helper.log_debug("In lookup looking for match with ref=\"{}\"".format(record[uc_ref_field]))
-                helper.log_debug("In lookup content uc_ref_field=\"{}\"".format(row[uc_ref_field]))
-                helper.log_debug("In lookup content json_dict=\"{}\"".format(row['json_dict']))
+                helper.log_debug("csv_data=\"{}\"".format(readCSV))
 
-                helper.log_debug("if {} is equal to {}".format(row[uc_ref_field], record[uc_ref_field]))
+                # Loop
+                for row in readCSV:
 
-                if row[uc_ref_field] == record[uc_ref_field]:
-                    helper.log_debug("In lookup record found, row=\"{}\"".format(row))
-                    jsonDict = row['json_dict']
+                    # log
+                    helper.log_debug("In lookup row=\"{}\"".format(row))
+                    helper.log_debug("In lookup looking for match with ref=\"{}\"".format(record[uc_ref_field]))
+                    helper.log_debug("In lookup content uc_ref_field=\"{}\"".format(row[uc_ref_field]))
+                    helper.log_debug("In lookup content json_dict=\"{}\"".format(row['json_dict']))
+
+                    helper.log_debug("if {} is equal to {}".format(row[uc_ref_field], record[uc_ref_field]))
+
+                    if row[uc_ref_field] == record[uc_ref_field]:
+                        helper.log_debug("In lookup record found, row=\"{}\"".format(row))
+                        jsonDict = row['json_dict']
 
             # process if we have a JSON rule object
             if not jsonDict:
@@ -176,15 +178,6 @@ def process_event(helper, *args, **kwargs):
                     helper.log_info("record match for use case uc_ref_field=\"{}\", risk_rules were loaded successfully, jsonObj=\"{}\"".format(record[uc_ref_field], json.dumps(jsonObj)))
                 except Exception as e:
                     helper.log_error("Failure to load the json object, use case uc_ref_field=\"{}\", exception=\"{}\"".format(record[uc_ref_field], e))
-
-                #
-                # Set the search basis
-                #
-
-                splQueryRoot = "| riskjsonload json_path=\"" + results_json.name + "\" | spath | rename \"*{}\" as \"*\""
-                helper.log_debug("splQueryRoot=\"{}\"".format(splQueryRoot))
-                splQuery = ""
-                spl_count = 1
 
                 # Load each JSON within the JSON array
                 # Add the very beginning of our pseudo event
@@ -246,13 +239,18 @@ def process_event(helper, *args, **kwargs):
 
                         else:
                             threat_objects_list.append(record[threat_object_field])
-                        helper.log_debug("threat_objects_list=\"{}\"".format(threat_objects_list))
+
+                        # Add to the record
+                        new_record['threat_object'] = threat_objects_list
 
                         # Handle threat_object_type
                         threat_object_type = jsonSubObj['threat_object_type']
                         helper.log_debug("threat_object_type=\"{}\"".format(threat_object_type))
                         threat_objects_type_list.append(threat_object_type)
                         helper.log_debug("threat_objects_type_list=\"{}\"".format(threat_objects_type_list))
+
+                        # Add
+                        new_record['threat_object_type'] = threat_objects_type_list
 
                         # Boolean
                         json_threat_object = True
@@ -325,31 +323,25 @@ def process_event(helper, *args, **kwargs):
                         except Exception as e:
                             helper.log_debug("risk_object was not found in a mv format, exception=\"{}\"".format(e))
 
+
+                        #
+                        # risk object
+                        #
+
                         # handle the format field
                         if not format_separator and len(risk_object_mv_field) == 0 and type(record[risk_object]) != list:
 
                             # log
                             helper.log_debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
 
-                            # Set the initial query
-                            if spl_count>1:
-                                splQuery = str(splQuery) + "\n" +\
-                                    "| append [ \n" + str(splQueryRoot) + "\n" +\
-                                    "| eval risk_object=\"" + record[risk_object] + "\", risk_object_type=\"" + str(risk_object_type)+ "\", risk_score=\"" + str(risk_score) + "\"\n" +\
-                                    "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken ]\n"
-                            else:
-                                splQuery = str(splQueryRoot) + "\n" +\
-                                    "| eval risk_object=\"" + record[risk_object] + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
-                                    "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
-                            spl_count+=1
+                            # Add
+                            new_record['risk_object'] = record[risk_object]
+                            new_record['risk_object_type'] = risk_object_type
+                            new_record['risk_score'] = risk_score
+                            new_record['risk_message'] = risk_message
 
-                            # If running in pre threat compatible mode, force include the threat_object and threat_object_type fields
-                            if len(threat_objects_list) and len(threat_objects_type_list):
-                                threat_objects_str = "|".join(threat_objects_list)
-                                threat_objects_type_str = "|".join(threat_objects_type_list)
-                                splQuery = splQuery + "\n" +\
-                                    "| eval threat_object=\"" + threat_objects_str.replace('"', '\\\"') +\
-                                    "\", threat_object_type=\"" + threat_objects_type_str + "\" | makemv delim=\"|\" threat_object | makemv delim=\"|\" threat_object_type"
+                            # Add to final records
+                            all_new_records.append(new_record)
 
                         else:
 
@@ -370,64 +362,83 @@ def process_event(helper, *args, **kwargs):
                             for risk_subobject in risk_object_list:
                                 helper.log_debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
 
-                                # set the query
-                                if spl_count>1:
-                                    splQuery = str(splQuery) + "\n" +\
-                                        "| append [ \n" + str(splQueryRoot) + "\n" +\
-                                        "| eval risk_object=\"" + str(risk_subobject) + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
-                                        "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken ]\n"
-                                else:
-                                    splQuery = str(splQueryRoot) + "\n" +\
-                                        "| eval risk_object=\"" + str(risk_subobject) + "\", risk_object_type=\"" + str(risk_object_type) + "\", risk_score=\"" + str(risk_score) + "\"\n" +\
-                                        "| eval risk_message=\"" + str(risk_message) + "\" | expandtoken\n"
-                                spl_count+=1
+                                # Handle this mv structure in a new record
+                                mv_record = {}
+                                for k in new_record:
+                                    mv_record[k] = new_record[k]                                    
+                                helper.log_debug("mv_record=\"{}\"".format(mv_record))
 
-                                # Manually create the threats fields (if any)
-                                if len(threat_objects_list) and len(threat_objects_type_list):
-                                    threat_objects_str = "|".join(threat_objects_list)
-                                    threat_objects_type_str = "|".join(threat_objects_type_list)
-                                    splQuery = splQuery + "\n" +\
-                                        "| eval threat_object=\"" + threat_objects_str +\
-                                        "\", threat_object_type=\"" + threat_objects_type_str + "\" | makemv delim=\"|\" threat_object | makemv delim=\"|\" threat_object_type"
+                                # Add
+                                mv_record['risk_object'] = risk_subobject
+                                mv_record['risk_object_type'] = risk_object_type
+                                mv_record['risk_score'] = risk_score
+                                mv_record['risk_message'] = risk_message
 
-                #
-                # Run the search
-                #
+                                # Add original fields
+                                for k in record:
+                                    if not k.startswith('__mv'):
+                                        mv_record[k] = record[k]
 
-                if spl_count>1:
-
-                    # Terminate the search
-                    splQuery = str(splQuery) + "\n" +\
-                        "| eval search_name=\"" + str(search_name) + "\"\n" +\
-                        "| eval _key=search_name | lookup local=true correlationsearches_lookup _key OUTPUTNEW annotations, description as savedsearch_description | spathannotations" +\
-                        "| collectrisk search_name=\"" + str(search_name) + "\""
-
-                    helper.log_debug("splQuery=\"{}\"".format(splQuery))
-
-                    # Run a search in Python
-                    kwargs_search = {"app": "TA-risk-superhandler", "earliest_time": "-5m", "latest_time": "now"}
-
-                    # spawn the search and get the results
-                    searchresults = service.jobs.oneshot(splQuery, **kwargs_search)
-
-                    try:
-                        reader = results.ResultsReader(searchresults)
-                        for item in reader:
-                            query_result = item
-                        helper.log_info("risk command was successful, result=\"{}\"".format(json.dumps(query_result, indent=0)))
-
-                    except Exception as e:
-                        helper.log_error("risk command has failed with exception=\"{}\"".format(e))
-
-                else:
-                    helper.log_error("It looks like we don't have a proper search to run, this sounds like it is unexpected, splQuery=\"{}\"".format(splQuery))
+                                # Add to final records
+                                all_new_records.append(mv_record)
 
         # Initial exception handler
         except Exception as e:
             helper.log_error("An exception was encountered while processing the risk actions, exception=\"{}\"".format(e))
 
-        # close and delete transparently
-        finally:
-            results_json.close()
+        # Add all fields from the record, except __mv structure
+        for k in record:
+            if not k.startswith('__mv'):
+                helper.log_debug("Adding field=\"{}\"".format(k))
+                new_record[k] = record[k]
+            else:
+                helper.log_debug("Excluding field=\"{}\"".format(k))
+
+    #
+    # Write final json
+    #
+
+    # Write our json record
+    results_json.writelines(json.dumps(all_new_records))
+    results_json.seek(0)
+
+    #
+    # Set and run a Splunk query using the Python SDK
+    #
+
+    splQuery = "| riskjsonload json_path=\"" + results_json.name + "\" | spath | rename \"*{}\" as \"*\"" + "\n" +\
+        "| eval search_name=\"" + str(search_name) + "\"\n" +\
+        "| expandtoken" + "\n" +\
+        "| eval _key=search_name | lookup local=true correlationsearches_lookup _key OUTPUTNEW annotations, description as savedsearch_description | spathannotations" +\
+        "| collectrisk search_name=\"" + str(search_name) + "\""
+
+    helper.log_debug("splQuery=\"{}\"".format(splQuery))
+
+    # Run a search in Python
+    kwargs_search = {"app": "TA-risk-superhandler", "earliest_time": "-5m", "latest_time": "now"}
+
+    try:
+        # spawn the search and get the results
+        searchresults = service.jobs.oneshot(splQuery, **kwargs_search)
+
+        reader = results.ResultsReader(searchresults)
+        for item in reader:
+            query_result = item
+        helper.log_info("risk command was successful, result=\"{}\"".format(json.dumps(query_result, indent=0)))
+
+    except Exception as e:
+        helper.log_error("risk command has failed with exception=\"{}\"".format(e))
+
+    #finally:
+
+        # close the json
+        #results_json.close()
+
+        # delete
+        #if os.path.isfile(results_json.name):
+            #try:
+            #    os.remove(results_json.name)
+            #except Exception as e:
+            #    helper.log_error("Failure to remove temporary file, path=\"{}\", exception=\"{}\"".format(results_json.name, e))
 
     return 0

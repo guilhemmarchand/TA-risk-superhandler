@@ -73,7 +73,7 @@ class JsonRestHandler(GeneratingCommand):
         # temp
         f = open(self.json_path)
 
-        records = [ json.load(f) ]
+        records = json.load(f)
 
         logging.debug("records=\"{}\"".format(records))
 
