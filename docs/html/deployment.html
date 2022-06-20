@@ -42,7 +42,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Configuration" href="configuration.html" />
+    <link rel="next" title="Release notes" href="releasenotes.html" />
     <link rel="prev" title="Requirements" href="requirements.html" /> 
 </head>
 
@@ -99,12 +99,20 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Deployment and base configuration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#create-your-risk-base-alerting-use-case-lookup-referencial">Create your risk base alerting use case lookup referencial</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#risk-base-lookup-file-requirements">Risk Base Lookup file requirements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#json-risk-rule-definition">JSON Risk Rule definition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#a-first-json-risk-definition-example">A first JSON Risk definition example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#defining-an-additional-risk-object">Defining an additional risk object</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#defining-the-threat-objects">Defining the threat objects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#our-final-lookup-referencial">Our final lookup referencial</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
 </ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="userguide.html">User guide</a></li>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#using-the-risk-super-alert-action">Using the Risk Super alert action</a></li>
+</ul>
+</li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Release notes</a></li>
@@ -183,6 +191,133 @@
 <li><p>Install the Add-on using supported Splunk deployment methods, either via the UI for a standalone Splunk instance, or via the SHC deployer in a Search Head Context</p></li>
 </ul>
 </div>
+<div class="section" id="create-your-risk-base-alerting-use-case-lookup-referencial">
+<h2>Create your risk base alerting use case lookup referencial<a class="headerlink" href="#create-your-risk-base-alerting-use-case-lookup-referencial" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="risk-base-lookup-file-requirements">
+<h3>Risk Base Lookup file requirements<a class="headerlink" href="#risk-base-lookup-file-requirements" title="Permalink to this headline">¶</a></h3>
+<p><strong>Start by creating your Risk Based Alerting referencial lookup file, the CSV file requires two fields:</strong></p>
+<ul class="simple">
+<li><p>A use case unique reference, you can name the column either way, this should reference uniquely the Risk Rule use case, example: <code class="docutils literal notranslate"><span class="pre">risk_uc_id</span></code></p></li>
+<li><p>A JSON object defining the Risk Rules for the use case (syntax and options are described below), the name of the column is mandatory called <code class="docutils literal notranslate"><span class="pre">json_dict</span></code></p></li>
+</ul>
+<p><strong>For the purpose of the documentation, the following naming convention is used:</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">risk_uc_ref.csv</span></code></p>
+<p><strong>The Lookup file should be shared at the system level, and can be called in SplunkEnterpriseSecurity application context as:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span> <span class="n">inputlookup</span> <span class="n">risk_uc_ref</span><span class="o">.</span><span class="n">csv</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="json-risk-rule-definition">
+<h3>JSON Risk Rule definition<a class="headerlink" href="#json-risk-rule-definition" title="Permalink to this headline">¶</a></h3>
+<p>The second field <code class="docutils literal notranslate"><span class="pre">json_dict</span></code> is designed to contain the well formed JSON object defining the Risk rules, with the following logic:</p>
+<ul class="simple">
+<li><p>A field <code class="docutils literal notranslate"><span class="pre">search_name</span></code> defines the real name of the Risk Rule correlation search, it defines as well the value for the Splunk <code class="docutils literal notranslate"><span class="pre">source</span></code> Metadata (handled by the collectrisk command)</p></li>
+<li><p>One or more JSON objects define the <code class="docutils literal notranslate"><span class="pre">risk_object</span></code>, <code class="docutils literal notranslate"><span class="pre">risk_object_type</span></code>, <code class="docutils literal notranslate"><span class="pre">risk_message</span></code> and <code class="docutils literal notranslate"><span class="pre">risk_score</span></code></p></li>
+<li><p>One or more JSON objects define the <code class="docutils literal notranslate"><span class="pre">threat_object</span></code> and <code class="docutils literal notranslate"><span class="pre">threat_object_type</span></code></p></li>
+</ul>
+<div class="section" id="a-first-json-risk-definition-example">
+<h4>A first JSON Risk definition example<a class="headerlink" href="#a-first-json-risk-definition-example" title="Permalink to this headline">¶</a></h4>
+<p><strong>Let’s assume:</strong></p>
+<ul class="simple">
+<li><p>Our Risk Rule correlation generates security events for an endpoint, using the CIM convention <code class="docutils literal notranslate"><span class="pre">dest</span></code>: the risk object value is <code class="docutils literal notranslate"><span class="pre">dest</span></code>, the type of the risk object is <code class="docutils literal notranslate"><span class="pre">system</span></code></p></li>
+<li><p>We associate a <code class="docutils literal notranslate"><span class="pre">risk_score</span></code> of 10 with this risk object</p></li>
+<li><p>Finally, we generate a <code class="docutils literal notranslate"><span class="pre">risk_message</span></code> which will be expanded automatically using the <code class="docutils literal notranslate"><span class="pre">risk_object</span></code> token</p></li>
+</ul>
+<p><strong>Our JSON object:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[{</span><span class="s2">&quot;search_name&quot;</span><span class="p">:</span> <span class="s2">&quot;Threat - UC-EDR-001 - Rule&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;risk_object&quot;</span><span class="p">:</span> <span class="s2">&quot;dest&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_score&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;risk_message&quot;</span><span class="p">:</span> <span class="s2">&quot;Security event detected on endpoint dest=$risk_object$&quot;</span><span class="p">}]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="defining-an-additional-risk-object">
+<h4>Defining an additional risk object<a class="headerlink" href="#defining-an-additional-risk-object" title="Permalink to this headline">¶</a></h4>
+<p><strong>Additionally, our Risk Rule correlation search renders a user information, we can complete our JSON rule with an additional JSON object:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;risk_object&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_score&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;risk_message&quot;</span><span class="p">:</span> <span class="s2">&quot;Endpoint security event detected involving user=$risk_object$&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Our JSON definition is now:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[{</span><span class="s2">&quot;search_name&quot;</span><span class="p">:</span> <span class="s2">&quot;Threat - UC-EDR-001 - Rule&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;risk_object&quot;</span><span class="p">:</span> <span class="s2">&quot;dest&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_score&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;risk_message&quot;</span><span class="p">:</span> <span class="s2">&quot;Security event detected on endpoint dest=$risk_object$&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;risk_object&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_score&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;risk_message&quot;</span><span class="p">:</span> <span class="s2">&quot;Endpoint security event detected involving user=$risk_object$&quot;</span><span class="p">}]</span>
+</pre></div>
+</div>
+<p><strong>If:</strong></p>
+<ul class="simple">
+<li><p>Any of the risk_object is available as part of Risk Rule correlation search results, a new risk event will be created accordingly</p></li>
+<li><p>As we have two risk objects, a single result from the correlation search can potentially lead to the generation of 2 risk events</p></li>
+<li><p>Any field available as part of the correlation search result, is available in the risk event too</p></li>
+</ul>
+</div>
+<div class="section" id="defining-the-threat-objects">
+<h4>Defining the threat objects<a class="headerlink" href="#defining-the-threat-objects" title="Permalink to this headline">¶</a></h4>
+<p><strong>As for the risk objects, we can have one of more combinations of threat objects, for example:</strong></p>
+<ul class="simple">
+<li><p>Our correlation search renders a process value, the <code class="docutils literal notranslate"><span class="pre">threat_object</span></code> is <code class="docutils literal notranslate"><span class="pre">process</span></code>, the <code class="docutils literal notranslate"><span class="pre">threat_object_type</span></code> is <code class="docutils literal notranslate"><span class="pre">process</span></code> (the first is the value, the second the category)</p></li>
+<li><p>In addition, it renders the hash value of the process, the <code class="docutils literal notranslate"><span class="pre">threat_object</span></code> is <code class="docutils literal notranslate"><span class="pre">file_hash</span></code>, the <code class="docutils literal notranslate"><span class="pre">threat_object_type</span></code> is <code class="docutils literal notranslate"><span class="pre">hash</span></code></p></li>
+</ul>
+<p><strong>Each threat JSON object will look like:</strong></p>
+<p><em>the first threat object:</em></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;threat_object_field&quot;</span><span class="p">:</span> <span class="s2">&quot;process&quot;</span><span class="p">,</span> <span class="s2">&quot;threat_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;process&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p><em>the second threat object:</em></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;threat_object_field&quot;</span><span class="p">:</span> <span class="s2">&quot;file_hash&quot;</span><span class="p">,</span> <span class="s2">&quot;threat_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;hash&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Our final JSON definition is now:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[{</span><span class="s2">&quot;search_name&quot;</span><span class="p">:</span> <span class="s2">&quot;Threat - UC-EDR-001 - Rule&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;risk_object&quot;</span><span class="p">:</span> <span class="s2">&quot;dest&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_score&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;risk_message&quot;</span><span class="p">:</span> <span class="s2">&quot;Security event detected on endpoint dest=$risk_object$&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;risk_object&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_score&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;risk_message&quot;</span><span class="p">:</span> <span class="s2">&quot;Endpoint security event detected involving user=$risk_object$&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;threat_object_field&quot;</span><span class="p">:</span> <span class="s2">&quot;process&quot;</span><span class="p">,</span> <span class="s2">&quot;threat_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;process&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;threat_object_field&quot;</span><span class="p">:</span> <span class="s2">&quot;file_hash&quot;</span><span class="p">,</span> <span class="s2">&quot;threat_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;hash&quot;</span><span class="p">}]</span>
+</pre></div>
+</div>
+<p><strong>Let’s pretty print:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[{</span>
+    <span class="s2">&quot;search_name&quot;</span><span class="p">:</span> <span class="s2">&quot;Threat - UC-EDR-001 - Rule&quot;</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="s2">&quot;risk_object&quot;</span><span class="p">:</span> <span class="s2">&quot;dest&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;risk_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;risk_score&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="s2">&quot;risk_message&quot;</span><span class="p">:</span> <span class="s2">&quot;Security event detected on endpoint dest=$risk_object$&quot;</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="s2">&quot;risk_object&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;risk_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;risk_score&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="s2">&quot;risk_message&quot;</span><span class="p">:</span> <span class="s2">&quot;Endpoint security event detected involving user=$risk_object$&quot;</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="s2">&quot;threat_object_field&quot;</span><span class="p">:</span> <span class="s2">&quot;process&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;threat_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;process&quot;</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="s2">&quot;threat_object_field&quot;</span><span class="p">:</span> <span class="s2">&quot;file_hash&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;threat_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;hash&quot;</span>
+<span class="p">}]</span>
+</pre></div>
+</div>
+<p><strong>Note:</strong></p>
+<ul class="simple">
+<li><p>You can fill the lookup in pretty print format</p></li>
+</ul>
+</div>
+<div class="section" id="our-final-lookup-referencial">
+<h4>Our final lookup referencial<a class="headerlink" href="#our-final-lookup-referencial" title="Permalink to this headline">¶</a></h4>
+<p><strong>Finally, our lookup is now:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">risk_uc_ref</span><span class="p">,</span><span class="n">json_data</span>
+<span class="n">edr</span><span class="o">-</span><span class="mi">001</span><span class="p">,[{</span><span class="s2">&quot;search_name&quot;</span><span class="p">:</span> <span class="s2">&quot;Threat - UC-EDR-001 - Rule&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;risk_object&quot;</span><span class="p">:</span> <span class="s2">&quot;dest&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_score&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;risk_message&quot;</span><span class="p">:</span> <span class="s2">&quot;Security event detected on endpoint dest=$risk_object$&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;risk_object&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_score&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;risk_message&quot;</span><span class="p">:</span> <span class="s2">&quot;Endpoint security event detected involving user=$risk_object$&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;threat_object_field&quot;</span><span class="p">:</span> <span class="s2">&quot;process&quot;</span><span class="p">,</span> <span class="s2">&quot;threat_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;process&quot;</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;threat_object_field&quot;</span><span class="p">:</span> <span class="s2">&quot;file_hash&quot;</span><span class="p">,</span> <span class="s2">&quot;threat_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;hash&quot;</span><span class="p">}]</span>
+</pre></div>
+</div>
+<p><strong>Complete the lookup with all Risk Rule correlation searches.</strong></p>
+</div>
+</div>
+</div>
+<div class="section" id="using-the-risk-super-alert-action">
+<h2>Using the Risk Super alert action<a class="headerlink" href="#using-the-risk-super-alert-action" title="Permalink to this headline">¶</a></h2>
+<p>Now that we have configured our RBA lookup, the <code class="docutils literal notranslate"><span class="pre">Risk</span> <span class="pre">Super</span></code> alert action needs to get called at the Risk Rule correlation level, this gets configured via the Correlation Search Editor providing 2 information:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">uc_ref_field</span></code> which defines the name of the field containing the use case reference in both the correlation search results and the use case lookup referencial</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">uc_lookup_path</span></code> which defines the Splunk home relative system path to the lookup file</p></li>
+</ul>
+<p><strong>For example, in our case:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">uc_ref_field</span></code>: <code class="docutils literal notranslate"><span class="pre">risk_uc_ref</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">uc_lookup_path</span></code>: <code class="docutils literal notranslate"><span class="pre">SplunkEnterpriseSecuritySuite/lookups/risk_uc_ref.csv</span></code></p></li>
+</ul>
+<p><strong>And that’s it! The entire knowledge is contained in the lookup file, from the Splunk UI this looks like:</strong></p>
+<a class="reference internal image-reference" href="_images/risk_super_alert_action001.png"><img alt="risk_super_alert_action001.png" class="align-center" src="_images/risk_super_alert_action001.png" style="width: 800px;" /></a>
+</div>
 </div>
 
 
@@ -191,7 +326,7 @@
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="configuration.html" class="btn btn-neutral float-right" title="Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="releasenotes.html" class="btn btn-neutral float-right" title="Release notes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="requirements.html" class="btn btn-neutral float-left" title="Requirements" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 

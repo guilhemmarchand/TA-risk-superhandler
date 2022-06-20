@@ -29,22 +29,13 @@ Overview:
    compatibility
    requirements
 
-Deployment and configuration:
-=============================
+Deployment, configuration and usage:
+====================================
 
 .. toctree::
    :maxdepth: 2
 
    deployment
-   configuration
-
-User guide:
-===========
-
-.. toctree::
-   :maxdepth: 2
-
-   userguide
 
 Versions, build history and development:
 ========================================
