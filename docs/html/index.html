@@ -96,7 +96,7 @@
 <li class="toctree-l1"><a class="reference internal" href="requirements.html">Requirements</a></li>
 </ul>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment and base configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html">Installation, configuration and usage</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Release notes</a></li>
@@ -181,7 +181,7 @@
 <ul class="simple">
 <li><p>A lookup file is created and acts as the central reference for the Risk Rules (RR) use cases, and their risk definition</p></li>
 <li><p>The application provides a “Risk super” alert action which can be enabled per Risk Rule correletation search, as well as a streaming custom command that can be called directly to generate the risk events from upstream results</p></li>
-<li><p>When the Risk Rule triggers, the backend lookups the use case referencial for a match with the use case reference, if there is match it loads the risk rules definition from the lookup</p></li>
+<li><p>When the Risk Rule triggers, the backend lookups the use case referencial for a match with the use case reference, if there is a match, it loads the risk rules definition from the lookup</p></li>
 <li><p>The Risk definition is applied to the results of the correlation search, and submits these in a pre-formated manner to the Splunk Enterprise Security collectrisk custom command</p></li>
 <li><p>Risk events are created transparently depending on the risk rules and the events content</p></li>
 <li><p>Risk messages can differ per risk object, as well as the risk score</p></li>
@@ -210,11 +210,13 @@
 <h1>Deployment, configuration and usage:<a class="headerlink" href="#deployment-configuration-and-usage" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment and base configuration</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html">Installation, configuration and usage</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="deployment.html#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="deployment.html#create-your-risk-base-alerting-use-case-lookup-referencial">Create your risk base alerting use case lookup referencial</a></li>
 <li class="toctree-l2"><a class="reference internal" href="deployment.html#using-the-risk-super-alert-action">Using the Risk Super alert action</a></li>
 <li class="toctree-l2"><a class="reference internal" href="deployment.html#using-the-risk-super-handler-custom-command">Using the Risk Super Handler custom command</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#multivalue-and-string-delimited-fields">Multivalue and string delimited fields</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#troubleshoot">Troubleshoot</a></li>
 </ul>
 </li>
 </ul>

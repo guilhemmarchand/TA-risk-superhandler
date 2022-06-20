@@ -1,5 +1,5 @@
-Deployment and base configuration
----------------------------------
+Installation, configuration and usage
+-------------------------------------
 
 Installation
 #############
@@ -142,6 +142,7 @@ Defining the threat objects
    :alt: lookup_editor001.png
    :align: center
    :width: 1600px
+   :class: with-border
 
 Our final lookup referencial
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -182,6 +183,7 @@ Now that we have configured our RBA lookup, the ``Risk Super`` alert action need
    :alt: risk_super_alert_action001.png
    :align: center
    :width: 800px
+   :class: with-border
 
 Calling the alert action manually for testing purposes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -205,6 +207,7 @@ Calling the alert action manually for testing purposes
    :alt: sendalert_example001.png
    :align: center
    :width: 1400px
+   :class: with-border
 
 **Locate the execution logs:**
 
@@ -235,6 +238,7 @@ You can as well make the application visible (go in Manage applications then edi
    :alt: risk_events_demo001.png
    :align: center
    :width: 1400px
+   :class: with-border
 
 **Let's use the datamodel now:**
 
@@ -248,6 +252,7 @@ You can as well make the application visible (go in Manage applications then edi
    :alt: risk_events_demo002.png
    :align: center
    :width: 1400px
+   :class: with-border
 
 *Shortly after, in the Risk Analysis UI:*
 
@@ -255,6 +260,7 @@ You can as well make the application visible (go in Manage applications then edi
    :alt: risk_events_demo003.png
    :align: center
    :width: 1400px
+   :class: with-border
 
 *Note that we don't have any annotation available yet, this is because we haven't created yet a proper correlation search, so our search_name does not lead to any annotation, let's create a proper correlation search and sets some random MITRE technics:*
 
@@ -262,6 +268,7 @@ You can as well make the application visible (go in Manage applications then edi
    :alt: risk_events_demo004.png
    :align: center
    :width: 1400px
+   :class: with-border
 
 *When it was executed at least once, we can now see the annotations:*
 
@@ -269,6 +276,7 @@ You can as well make the application visible (go in Manage applications then edi
    :alt: risk_events_demo005.png
    :align: center
    :width: 1400px
+   :class: with-border
 
 *In the Risk UI:*
 
@@ -276,6 +284,7 @@ You can as well make the application visible (go in Manage applications then edi
    :alt: risk_events_demo006.png
    :align: center
    :width: 1400px
+   :class: with-border
 
 **All good!**
 
@@ -305,4 +314,91 @@ This custom command is called ``risksuperhandler`` and behaves entirely as the m
 
     index=_internal sourcetype="risk:superhandler"
 
+.. image:: img/risk_events_demo007.png
+   :alt: risk_events_demo007.png
+   :align: center
+   :width: 1400px
+   :class: with-border
+
+**Which leads to the exact same results in the Risk index, Datamodel and UI.**
+
+Multivalue and string delimited fields
+######################################
+
+Single and Multivalue fields
+============================
+
+**The risk objects value fields, as well as the threat object value fields can be:**
+
+- Single value fields
+- Multivalue value fields (as from the results of a stats values(<myfield>))
+
+These will be treated transparently, and lead to the creation of risk events accordingly.
+
+Multivalue fields stored in a single value field using a delimiter
+==================================================================
+
+Alternatively, you can define a risk object field that is stored in a string delimited format, for instance, let's assume that as part of the search results, the ``user`` field is like:
+
+::
     
+    jsmith|jdoe|bfoo|jbar
+
+You can specify in the Risk definition rule, the special option ``format_separator`` with the delimiter, the backend will automatically convert this into a Python list, and handle each value as in a multi-value context:
+
+::
+
+    {"risk_object": "user", "risk_object_type": "user", "risk_score": 20, "risk_message": "Endpoint security event detected involving user=$risk_object$", "format_separator": "|"}
+
+
+Troubleshoot
+############
+
+Logging level
+=============
+
+All components honour a logging level that can be configured at the application level:
+
+*default/ta_risk_superhandler.conf:*
+
+::
+
+    [logging]
+    loglevel = INFO
+
+You can enable the ``DEBUG`` mode to get a deep debug of each step of the execution by publishing a local version of this file.
+
+You can as well make the application visible (go in Manage applications then edit properties), then access the application configuration page.
+
+.. image:: img/logging_level_001.png
+   :alt: logging_level_001.png
+   :align: center
+   :width: 1400px
+   :class: with-border
+
+Alert action modular alert logs
+===============================
+
+The logs resulting from the modular alert are available at:
+
+::
+
+    index="cim_modactions" sourcetype="modular_alerts:risk_super"
+
+Streaming custom command Risk Super Handler
+===========================================
+
+The logs resulting from the modular alert are available at:
+
+::
+
+    index=_internal sourcetype="risk:superhandler"
+
+riskjsonload generating custom command
+======================================
+
+The riskjsonload generating custom command is used to load the resulting JSON and submit to the collectrisk command from Splunk Enterprise Security, logs are available at:
+
+::
+
+    index=_internal sourcetype="risk:jsonload"

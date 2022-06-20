@@ -15,7 +15,7 @@ Welcome to the Risk Super Handler for Splunk Enterprise Security
 
 - A lookup file is created and acts as the central reference for the Risk Rules (RR) use cases, and their risk definition
 - The application provides a "Risk super" alert action which can be enabled per Risk Rule correletation search, as well as a streaming custom command that can be called directly to generate the risk events from upstream results
-- When the Risk Rule triggers, the backend lookups the use case referencial for a match with the use case reference, if there is match it loads the risk rules definition from the lookup
+- When the Risk Rule triggers, the backend lookups the use case referencial for a match with the use case reference, if there is a match, it loads the risk rules definition from the lookup
 - The Risk definition is applied to the results of the correlation search, and submits these in a pre-formated manner to the Splunk Enterprise Security collectrisk custom command
 - Risk events are created transparently depending on the risk rules and the events content
 - Risk messages can differ per risk object, as well as the risk score

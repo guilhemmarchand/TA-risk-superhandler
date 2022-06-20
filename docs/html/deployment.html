@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Deployment and base configuration &mdash; TA-risk-superhandler 1 documentation</title>
+  <title>Installation, configuration and usage &mdash; TA-risk-superhandler 1 documentation</title>
   
 
   
@@ -97,7 +97,7 @@
 <li class="toctree-l1"><a class="reference internal" href="requirements.html">Requirements</a></li>
 </ul>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Deployment and base configuration</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation, configuration and usage</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#create-your-risk-base-alerting-use-case-lookup-referencial">Create your risk base alerting use case lookup referencial</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#risk-base-lookup-file-requirements">Risk Base Lookup file requirements</a></li>
@@ -119,6 +119,18 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#using-the-risk-super-handler-custom-command">Using the Risk Super Handler custom command</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multivalue-and-string-delimited-fields">Multivalue and string delimited fields</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#single-and-multivalue-fields">Single and Multivalue fields</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multivalue-fields-stored-in-a-single-value-field-using-a-delimiter">Multivalue fields stored in a single value field using a delimiter</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshoot">Troubleshoot</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#logging-level">Logging level</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#alert-action-modular-alert-logs">Alert action modular alert logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#streaming-custom-command-risk-super-handler">Streaming custom command Risk Super Handler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#riskjsonload-generating-custom-command">riskjsonload generating custom command</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -172,7 +184,7 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li>Deployment and base configuration</li>
+      <li>Installation, configuration and usage</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -191,8 +203,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="deployment-and-base-configuration">
-<h1>Deployment and base configuration<a class="headerlink" href="#deployment-and-base-configuration" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="installation-configuration-and-usage">
+<h1>Installation, configuration and usage<a class="headerlink" href="#installation-configuration-and-usage" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
@@ -300,7 +312,7 @@
 <li><p>You can fill the lookup in pretty print format</p></li>
 </ul>
 <p><strong>Lookup overview in the Splunk app for Lookup Fil Editing:</strong></p>
-<a class="reference internal image-reference" href="_images/lookup_editor001.png"><img alt="lookup_editor001.png" class="align-center" src="_images/lookup_editor001.png" style="width: 1600px;" /></a>
+<a class="with-border reference internal image-reference" href="_images/lookup_editor001.png"><img alt="lookup_editor001.png" class="with-border align-center" src="_images/lookup_editor001.png" style="width: 1600px;" /></a>
 </div>
 <div class="section" id="our-final-lookup-referencial">
 <h4>Our final lookup referencial<a class="headerlink" href="#our-final-lookup-referencial" title="Permalink to this headline">¶</a></h4>
@@ -330,7 +342,7 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">uc_lookup_path</span></code>: <code class="docutils literal notranslate"><span class="pre">SplunkEnterpriseSecuritySuite/lookups/risk_uc_ref.csv</span></code></p></li>
 </ul>
 <p><strong>And that’s it! The entire knowledge is contained in the lookup file, from the Splunk UI this looks like:</strong></p>
-<a class="reference internal image-reference" href="_images/risk_super_alert_action001.png"><img alt="risk_super_alert_action001.png" class="align-center" src="_images/risk_super_alert_action001.png" style="width: 800px;" /></a>
+<a class="with-border reference internal image-reference" href="_images/risk_super_alert_action001.png"><img alt="risk_super_alert_action001.png" class="with-border align-center" src="_images/risk_super_alert_action001.png" style="width: 800px;" /></a>
 </div>
 <div class="section" id="calling-the-alert-action-manually-for-testing-purposes">
 <h4>Calling the alert action manually for testing purposes<a class="headerlink" href="#calling-the-alert-action-manually-for-testing-purposes" title="Permalink to this headline">¶</a></h4>
@@ -346,7 +358,7 @@
 </pre></div>
 </div>
 <p><strong>What this looks like:</strong></p>
-<a class="reference internal image-reference" href="_images/sendalert_example001.png"><img alt="sendalert_example001.png" class="align-center" src="_images/sendalert_example001.png" style="width: 1400px;" /></a>
+<a class="with-border reference internal image-reference" href="_images/sendalert_example001.png"><img alt="sendalert_example001.png" class="with-border align-center" src="_images/sendalert_example001.png" style="width: 1400px;" /></a>
 <p><strong>Locate the execution logs:</strong></p>
 <p>The internal log of the modular alert execution are indexed automatically in the <code class="docutils literal notranslate"><span class="pre">cim_modactions</span></code>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;cim_modactions&quot;</span> <span class="n">sourcetype</span><span class="o">=</span><span class="s2">&quot;modular_alerts:risk_super&quot;</span>
@@ -363,21 +375,21 @@
 </pre></div>
 </div>
 <p><em>What this looks like:</em></p>
-<a class="reference internal image-reference" href="_images/risk_events_demo001.png"><img alt="risk_events_demo001.png" class="align-center" src="_images/risk_events_demo001.png" style="width: 1400px;" /></a>
+<a class="with-border reference internal image-reference" href="_images/risk_events_demo001.png"><img alt="risk_events_demo001.png" class="with-border align-center" src="_images/risk_events_demo001.png" style="width: 1400px;" /></a>
 <p><strong>Let’s use the datamodel now:</strong></p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span> <span class="kn">from</span> <span class="nn">datamodel</span><span class="p">:</span><span class="s2">&quot;Risk&quot;</span><span class="o">.</span><span class="s2">&quot;All_Risk&quot;</span> <span class="o">|</span> <span class="n">search</span> <span class="n">source</span><span class="o">=</span><span class="s2">&quot;Threat - UC-EDR-001 - Rule&quot;</span> <span class="o">|</span> <span class="n">table</span> <span class="n">_time</span><span class="p">,</span> <span class="n">risk</span><span class="o">*</span><span class="p">,</span> <span class="n">threat</span><span class="o">*</span>
 </pre></div>
 </div>
 <p><em>What this looks like:</em></p>
-<a class="reference internal image-reference" href="_images/risk_events_demo002.png"><img alt="risk_events_demo002.png" class="align-center" src="_images/risk_events_demo002.png" style="width: 1400px;" /></a>
+<a class="with-border reference internal image-reference" href="_images/risk_events_demo002.png"><img alt="risk_events_demo002.png" class="with-border align-center" src="_images/risk_events_demo002.png" style="width: 1400px;" /></a>
 <p><em>Shortly after, in the Risk Analysis UI:</em></p>
-<a class="reference internal image-reference" href="_images/risk_events_demo003.png"><img alt="risk_events_demo003.png" class="align-center" src="_images/risk_events_demo003.png" style="width: 1400px;" /></a>
+<a class="with-border reference internal image-reference" href="_images/risk_events_demo003.png"><img alt="risk_events_demo003.png" class="with-border align-center" src="_images/risk_events_demo003.png" style="width: 1400px;" /></a>
 <p><em>Note that we don’t have any annotation available yet, this is because we haven’t created yet a proper correlation search, so our search_name does not lead to any annotation, let’s create a proper correlation search and sets some random MITRE technics:</em></p>
-<a class="reference internal image-reference" href="_images/risk_events_demo004.png"><img alt="risk_events_demo004.png" class="align-center" src="_images/risk_events_demo004.png" style="width: 1400px;" /></a>
+<a class="with-border reference internal image-reference" href="_images/risk_events_demo004.png"><img alt="risk_events_demo004.png" class="with-border align-center" src="_images/risk_events_demo004.png" style="width: 1400px;" /></a>
 <p><em>When it was executed at least once, we can now see the annotations:</em></p>
-<a class="reference internal image-reference" href="_images/risk_events_demo005.png"><img alt="risk_events_demo005.png" class="align-center" src="_images/risk_events_demo005.png" style="width: 1400px;" /></a>
+<a class="with-border reference internal image-reference" href="_images/risk_events_demo005.png"><img alt="risk_events_demo005.png" class="with-border align-center" src="_images/risk_events_demo005.png" style="width: 1400px;" /></a>
 <p><em>In the Risk UI:</em></p>
-<a class="reference internal image-reference" href="_images/risk_events_demo006.png"><img alt="risk_events_demo006.png" class="align-center" src="_images/risk_events_demo006.png" style="width: 1400px;" /></a>
+<a class="with-border reference internal image-reference" href="_images/risk_events_demo006.png"><img alt="risk_events_demo006.png" class="with-border align-center" src="_images/risk_events_demo006.png" style="width: 1400px;" /></a>
 <p><strong>All good!</strong></p>
 </div>
 </div>
@@ -400,6 +412,67 @@
 <p><em>Execution logs will be available in:</em></p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">index</span><span class="o">=</span><span class="n">_internal</span> <span class="n">sourcetype</span><span class="o">=</span><span class="s2">&quot;risk:superhandler&quot;</span>
 </pre></div>
+</div>
+<a class="with-border reference internal image-reference" href="_images/risk_events_demo007.png"><img alt="risk_events_demo007.png" class="with-border align-center" src="_images/risk_events_demo007.png" style="width: 1400px;" /></a>
+<p><strong>Which leads to the exact same results in the Risk index, Datamodel and UI.</strong></p>
+</div>
+<div class="section" id="multivalue-and-string-delimited-fields">
+<h2>Multivalue and string delimited fields<a class="headerlink" href="#multivalue-and-string-delimited-fields" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="single-and-multivalue-fields">
+<h3>Single and Multivalue fields<a class="headerlink" href="#single-and-multivalue-fields" title="Permalink to this headline">¶</a></h3>
+<p><strong>The risk objects value fields, as well as the threat object value fields can be:</strong></p>
+<ul class="simple">
+<li><p>Single value fields</p></li>
+<li><p>Multivalue value fields (as from the results of a stats values(&lt;myfield&gt;))</p></li>
+</ul>
+<p>These will be treated transparently, and lead to the creation of risk events accordingly.</p>
+</div>
+<div class="section" id="multivalue-fields-stored-in-a-single-value-field-using-a-delimiter">
+<h3>Multivalue fields stored in a single value field using a delimiter<a class="headerlink" href="#multivalue-fields-stored-in-a-single-value-field-using-a-delimiter" title="Permalink to this headline">¶</a></h3>
+<p>Alternatively, you can define a risk object field that is stored in a string delimited format, for instance, let’s assume that as part of the search results, the <code class="docutils literal notranslate"><span class="pre">user</span></code> field is like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">jsmith</span><span class="o">|</span><span class="n">jdoe</span><span class="o">|</span><span class="n">bfoo</span><span class="o">|</span><span class="n">jbar</span>
+</pre></div>
+</div>
+<p>You can specify in the Risk definition rule, the special option <code class="docutils literal notranslate"><span class="pre">format_separator</span></code> with the delimiter, the backend will automatically convert this into a Python list, and handle each value as in a multi-value context:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;risk_object&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_score&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;risk_message&quot;</span><span class="p">:</span> <span class="s2">&quot;Endpoint security event detected involving user=$risk_object$&quot;</span><span class="p">,</span> <span class="s2">&quot;format_separator&quot;</span><span class="p">:</span> <span class="s2">&quot;|&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="troubleshoot">
+<h2>Troubleshoot<a class="headerlink" href="#troubleshoot" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="logging-level">
+<h3>Logging level<a class="headerlink" href="#logging-level" title="Permalink to this headline">¶</a></h3>
+<p>All components honour a logging level that can be configured at the application level:</p>
+<p><em>default/ta_risk_superhandler.conf:</em></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">logging</span><span class="p">]</span>
+<span class="n">loglevel</span> <span class="o">=</span> <span class="n">INFO</span>
+</pre></div>
+</div>
+<p>You can enable the <code class="docutils literal notranslate"><span class="pre">DEBUG</span></code> mode to get a deep debug of each step of the execution by publishing a local version of this file.</p>
+<p>You can as well make the application visible (go in Manage applications then edit properties), then access the application configuration page.</p>
+<a class="with-border reference internal image-reference" href="_images/logging_level_001.png"><img alt="logging_level_001.png" class="with-border align-center" src="_images/logging_level_001.png" style="width: 1400px;" /></a>
+</div>
+<div class="section" id="alert-action-modular-alert-logs">
+<h3>Alert action modular alert logs<a class="headerlink" href="#alert-action-modular-alert-logs" title="Permalink to this headline">¶</a></h3>
+<p>The logs resulting from the modular alert are available at:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;cim_modactions&quot;</span> <span class="n">sourcetype</span><span class="o">=</span><span class="s2">&quot;modular_alerts:risk_super&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="streaming-custom-command-risk-super-handler">
+<h3>Streaming custom command Risk Super Handler<a class="headerlink" href="#streaming-custom-command-risk-super-handler" title="Permalink to this headline">¶</a></h3>
+<p>The logs resulting from the modular alert are available at:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">index</span><span class="o">=</span><span class="n">_internal</span> <span class="n">sourcetype</span><span class="o">=</span><span class="s2">&quot;risk:superhandler&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="riskjsonload-generating-custom-command">
+<h3>riskjsonload generating custom command<a class="headerlink" href="#riskjsonload-generating-custom-command" title="Permalink to this headline">¶</a></h3>
+<p>The riskjsonload generating custom command is used to load the resulting JSON and submit to the collectrisk command from Splunk Enterprise Security, logs are available at:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">index</span><span class="o">=</span><span class="n">_internal</span> <span class="n">sourcetype</span><span class="o">=</span><span class="s2">&quot;risk:jsonload&quot;</span>
+</pre></div>
+</div>
 </div>
 </div>
 </div>
