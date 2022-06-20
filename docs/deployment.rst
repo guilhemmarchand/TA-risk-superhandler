@@ -249,4 +249,58 @@ You can as well make the application visible (go in Manage applications then edi
    :align: center
    :width: 1400px
 
-   
+*Shortly after, in the Risk Analysis UI:*
+
+.. image:: img/risk_events_demo003.png
+   :alt: risk_events_demo003.png
+   :align: center
+   :width: 1400px
+
+*Note that we don't have any annotation available yet, this is because we haven't created yet a proper correlation search, so our search_name does not lead to any annotation, let's create a proper correlation search and sets some random MITRE technics:*
+
+.. image:: img/risk_events_demo004.png
+   :alt: risk_events_demo004.png
+   :align: center
+   :width: 1400px
+
+*When it was executed at least once, we can now see the annotations:*
+
+.. image:: img/risk_events_demo005.png
+   :alt: risk_events_demo005.png
+   :align: center
+   :width: 1400px
+
+*In the Risk UI:*
+
+.. image:: img/risk_events_demo006.png
+   :alt: risk_events_demo006.png
+   :align: center
+   :width: 1400px
+
+**All good!**
+
+Using the Risk Super Handler custom command
+###########################################
+
+**Similarly to the Risk Modular Alert action, you can call a streaming custom command to trigger the risk creation, as part of your search results.**
+
+This custom command is called ``risksuperhandler`` and behaves entirely as the modular alert action does.
+
+*In our correlation search example, this would be:*
+
+::
+
+    | makeresults
+    | eval dest="acme-endpoint-srv001", user="jsmith", process="very_bad.exe", file_hash=md5(process)
+
+    ```This defines the use case reference```
+    | eval risk_uc_ref="edr-001"
+
+    ```This calls the Risk Super modular alert action for testing purposes```
+    | risksuperhandler uc_lookup_path="SplunkEnterpriseSecuritySuite/lookups/risk_uc_ref.csv" uc_ref_field="risk_uc_ref"    
+
+*Execution logs will be available in:*
+
+::
+
+    index=_internal sourcetype="risk:superhandler"

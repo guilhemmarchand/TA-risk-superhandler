@@ -118,6 +118,7 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#using-the-risk-super-handler-custom-command">Using the Risk Super Handler custom command</a></li>
 </ul>
 </li>
 </ul>
@@ -369,7 +370,36 @@
 </div>
 <p><em>What this looks like:</em></p>
 <a class="reference internal image-reference" href="_images/risk_events_demo002.png"><img alt="risk_events_demo002.png" class="align-center" src="_images/risk_events_demo002.png" style="width: 1400px;" /></a>
+<p><em>Shortly after, in the Risk Analysis UI:</em></p>
+<a class="reference internal image-reference" href="_images/risk_events_demo003.png"><img alt="risk_events_demo003.png" class="align-center" src="_images/risk_events_demo003.png" style="width: 1400px;" /></a>
+<p><em>Note that we don’t have any annotation available yet, this is because we haven’t created yet a proper correlation search, so our search_name does not lead to any annotation, let’s create a proper correlation search and sets some random MITRE technics:</em></p>
+<a class="reference internal image-reference" href="_images/risk_events_demo004.png"><img alt="risk_events_demo004.png" class="align-center" src="_images/risk_events_demo004.png" style="width: 1400px;" /></a>
+<p><em>When it was executed at least once, we can now see the annotations:</em></p>
+<a class="reference internal image-reference" href="_images/risk_events_demo005.png"><img alt="risk_events_demo005.png" class="align-center" src="_images/risk_events_demo005.png" style="width: 1400px;" /></a>
+<p><em>In the Risk UI:</em></p>
+<a class="reference internal image-reference" href="_images/risk_events_demo006.png"><img alt="risk_events_demo006.png" class="align-center" src="_images/risk_events_demo006.png" style="width: 1400px;" /></a>
+<p><strong>All good!</strong></p>
 </div>
+</div>
+</div>
+<div class="section" id="using-the-risk-super-handler-custom-command">
+<h2>Using the Risk Super Handler custom command<a class="headerlink" href="#using-the-risk-super-handler-custom-command" title="Permalink to this headline">¶</a></h2>
+<p><strong>Similarly to the Risk Modular Alert action, you can call a streaming custom command to trigger the risk creation, as part of your search results.</strong></p>
+<p>This custom command is called <code class="docutils literal notranslate"><span class="pre">risksuperhandler</span></code> and behaves entirely as the modular alert action does.</p>
+<p><em>In our correlation search example, this would be:</em></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>| makeresults
+| eval dest=&quot;acme-endpoint-srv001&quot;, user=&quot;jsmith&quot;, process=&quot;very_bad.exe&quot;, file_hash=md5(process)
+
+```This defines the use case reference```
+| eval risk_uc_ref=&quot;edr-001&quot;
+
+```This calls the Risk Super modular alert action for testing purposes```
+| risksuperhandler uc_lookup_path=&quot;SplunkEnterpriseSecuritySuite/lookups/risk_uc_ref.csv&quot; uc_ref_field=&quot;risk_uc_ref&quot;
+</pre></div>
+</div>
+<p><em>Execution logs will be available in:</em></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">index</span><span class="o">=</span><span class="n">_internal</span> <span class="n">sourcetype</span><span class="o">=</span><span class="s2">&quot;risk:superhandler&quot;</span>
+</pre></div>
 </div>
 </div>
 </div>
