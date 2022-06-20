@@ -40,6 +40,7 @@ Overview:
 
    compatibility
    requirements
+   download
 
 Deployment, configuration and usage:
 ====================================

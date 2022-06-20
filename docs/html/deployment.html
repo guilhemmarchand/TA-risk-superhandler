@@ -43,7 +43,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Release notes" href="releasenotes.html" />
-    <link rel="prev" title="Requirements" href="requirements.html" /> 
+    <link rel="prev" title="Download" href="download.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -95,6 +95,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="compatibility.html">Compatibility</a></li>
 <li class="toctree-l1"><a class="reference internal" href="requirements.html">Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="download.html">Download</a></li>
 </ul>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation, configuration and usage</a><ul>
@@ -106,6 +107,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#defining-an-additional-risk-object">Defining an additional risk object</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#defining-the-threat-objects">Defining the threat objects</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#our-final-lookup-referencial">Our final lookup referencial</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#json-consistency">JSON consistency</a></li>
 </ul>
 </li>
 </ul>
@@ -323,6 +325,25 @@
 </div>
 <p><strong>Complete the lookup with all Risk Rule correlation searches.</strong></p>
 </div>
+<div class="section" id="json-consistency">
+<h4>JSON consistency<a class="headerlink" href="#json-consistency" title="Permalink to this headline">¶</a></h4>
+<p><strong>It is recommended to verify the consistency of the JSON object before saving changes in the referencial lookup:</strong></p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://jsonlint.com/">https://jsonlint.com/</a></p></li>
+</ul>
+<p><strong>What is the JSON objec is inconsistent?</strong></p>
+<p>If for some reasons, the JSON is not well formated, the backend will raise an exception, example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ERROR</span> <span class="n">risksuperhandler</span><span class="o">.</span><span class="n">py</span> <span class="n">stream</span> <span class="mi">254</span> <span class="n">Failure</span> <span class="n">to</span> <span class="n">load</span> <span class="n">the</span> <span class="n">json</span> <span class="nb">object</span><span class="p">,</span> <span class="n">use</span> <span class="n">case</span> <span class="n">uc_ref_field</span><span class="o">=</span><span class="s2">&quot;edr-003&quot;</span><span class="p">,</span> <span class="n">exception</span><span class="o">=</span><span class="s2">&quot;Expecting &#39;,&#39; delimiter: line 1 column 211 (char 210)&quot;</span>
+</pre></div>
+</div>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<ul class="simple">
+<li><p>If you are using the streaming custom command, the Risk Super handler will not modify the output of the search</p></li>
+<li><p>If an exception is raised for some reasons, it will not prevent the output of the search to avoid affecting use cases</p></li>
+</ul>
+</div>
+</div>
 </div>
 </div>
 <div class="section" id="using-the-risk-super-alert-action">
@@ -503,7 +524,7 @@
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="releasenotes.html" class="btn btn-neutral float-right" title="Release notes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="requirements.html" class="btn btn-neutral float-left" title="Requirements" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="download.html" class="btn btn-neutral float-left" title="Download" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

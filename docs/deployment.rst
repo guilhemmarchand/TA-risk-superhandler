@@ -156,6 +156,26 @@ Our final lookup referencial
 
 **Complete the lookup with all Risk Rule correlation searches.**
 
+JSON consistency
+^^^^^^^^^^^^^^^^
+
+**It is recommended to verify the consistency of the JSON object before saving changes in the referencial lookup:**
+
+- https://jsonlint.com/
+
+**What is the JSON objec is inconsistent?**
+
+If for some reasons, the JSON is not well formated, the backend will raise an exception, example:
+
+::
+
+    ERROR risksuperhandler.py stream 254 Failure to load the json object, use case uc_ref_field="edr-003", exception="Expecting ',' delimiter: line 1 column 211 (char 210)"
+
+.. hint::
+
+    - If you are using the streaming custom command, the Risk Super handler will not modify the output of the search
+    - If an exception is raised for some reasons, it will not prevent the output of the search to avoid affecting use cases
+
 Using the Risk Super alert action
 #################################
 
