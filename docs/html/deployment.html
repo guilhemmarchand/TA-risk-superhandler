@@ -110,7 +110,14 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#using-the-risk-super-alert-action">Using the Risk Super alert action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-the-risk-super-alert-action">Using the Risk Super alert action</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#super-risk-modular-alert-action">Super Risk modular alert action</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#enabling-the-alert-action-at-the-risk-rule-correlation-search-level">Enabling the alert action at the Risk Rule correlation search level</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#calling-the-alert-action-manually-for-testing-purposes">Calling the alert action manually for testing purposes</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -291,6 +298,8 @@
 <ul class="simple">
 <li><p>You can fill the lookup in pretty print format</p></li>
 </ul>
+<p><strong>Lookup overview in the Splunk app for Lookup Fil Editing:</strong></p>
+<a class="reference internal image-reference" href="_images/lookup_editor001.png"><img alt="lookup_editor001.png" class="align-center" src="_images/lookup_editor001.png" style="width: 1600px;" /></a>
 </div>
 <div class="section" id="our-final-lookup-referencial">
 <h4>Our final lookup referencial<a class="headerlink" href="#our-final-lookup-referencial" title="Permalink to this headline">¶</a></h4>
@@ -305,6 +314,10 @@
 </div>
 <div class="section" id="using-the-risk-super-alert-action">
 <h2>Using the Risk Super alert action<a class="headerlink" href="#using-the-risk-super-alert-action" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="super-risk-modular-alert-action">
+<h3>Super Risk modular alert action<a class="headerlink" href="#super-risk-modular-alert-action" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="enabling-the-alert-action-at-the-risk-rule-correlation-search-level">
+<h4>Enabling the alert action at the Risk Rule correlation search level<a class="headerlink" href="#enabling-the-alert-action-at-the-risk-rule-correlation-search-level" title="Permalink to this headline">¶</a></h4>
 <p>Now that we have configured our RBA lookup, the <code class="docutils literal notranslate"><span class="pre">Risk</span> <span class="pre">Super</span></code> alert action needs to get called at the Risk Rule correlation level, this gets configured via the Correlation Search Editor providing 2 information:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">uc_ref_field</span></code> which defines the name of the field containing the use case reference in both the correlation search results and the use case lookup referencial</p></li>
@@ -317,6 +330,47 @@
 </ul>
 <p><strong>And that’s it! The entire knowledge is contained in the lookup file, from the Splunk UI this looks like:</strong></p>
 <a class="reference internal image-reference" href="_images/risk_super_alert_action001.png"><img alt="risk_super_alert_action001.png" class="align-center" src="_images/risk_super_alert_action001.png" style="width: 800px;" /></a>
+</div>
+<div class="section" id="calling-the-alert-action-manually-for-testing-purposes">
+<h4>Calling the alert action manually for testing purposes<a class="headerlink" href="#calling-the-alert-action-manually-for-testing-purposes" title="Permalink to this headline">¶</a></h4>
+<p><strong>You can call the alert action manually, for the testing or verification purposes, with our example:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>| makeresults
+| eval dest=&quot;acme-endpoint-srv001&quot;, user=&quot;jsmith&quot;, process=&quot;very_bad.exe&quot;, file_hash=md5(process)
+
+```This defines the use case reference```
+| eval risk_uc_ref=&quot;edr-001&quot;
+
+```This calls the Risk Super modular alert action for testing purposes```
+| sendalert risk_super param.uc_lookup_path=&quot;SplunkEnterpriseSecuritySuite/lookups/risk_uc_ref.csv&quot; param.uc_ref_field=&quot;risk_uc_ref&quot;
+</pre></div>
+</div>
+<p><strong>What this looks like:</strong></p>
+<a class="reference internal image-reference" href="_images/sendalert_example001.png"><img alt="sendalert_example001.png" class="align-center" src="_images/sendalert_example001.png" style="width: 1400px;" /></a>
+<p><strong>Locate the execution logs:</strong></p>
+<p>The internal log of the modular alert execution are indexed automatically in the <code class="docutils literal notranslate"><span class="pre">cim_modactions</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;cim_modactions&quot;</span> <span class="n">sourcetype</span><span class="o">=</span><span class="s2">&quot;modular_alerts:risk_super&quot;</span>
+</pre></div>
+</div>
+<p>You can change the logging level, which defaults to <code class="docutils literal notranslate"><span class="pre">INFO</span></code>, either by deploying a local/ta_risk_superhandler.conf:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">logging</span><span class="p">]</span>
+<span class="n">loglevel</span> <span class="o">=</span> <span class="n">INFO</span>
+</pre></div>
+</div>
+<p>You can as well make the application visible (go in Manage applications then edit properties), then access the application configuration page.</p>
+<p><strong>If everything was configured properly, you will find 2 risk events newly created:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">index</span><span class="o">=</span><span class="n">risk</span> <span class="n">source</span><span class="o">=</span><span class="s2">&quot;Threat - UC-EDR-001 - Rule&quot;</span>
+</pre></div>
+</div>
+<p><em>What this looks like:</em></p>
+<a class="reference internal image-reference" href="_images/risk_events_demo001.png"><img alt="risk_events_demo001.png" class="align-center" src="_images/risk_events_demo001.png" style="width: 1400px;" /></a>
+<p><strong>Let’s use the datamodel now:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span> <span class="kn">from</span> <span class="nn">datamodel</span><span class="p">:</span><span class="s2">&quot;Risk&quot;</span><span class="o">.</span><span class="s2">&quot;All_Risk&quot;</span> <span class="o">|</span> <span class="n">search</span> <span class="n">source</span><span class="o">=</span><span class="s2">&quot;Threat - UC-EDR-001 - Rule&quot;</span> <span class="o">|</span> <span class="n">table</span> <span class="n">_time</span><span class="p">,</span> <span class="n">risk</span><span class="o">*</span><span class="p">,</span> <span class="n">threat</span><span class="o">*</span>
+</pre></div>
+</div>
+<p><em>What this looks like:</em></p>
+<a class="reference internal image-reference" href="_images/risk_events_demo002.png"><img alt="risk_events_demo002.png" class="align-center" src="_images/risk_events_demo002.png" style="width: 1400px;" /></a>
+</div>
+</div>
 </div>
 </div>
 

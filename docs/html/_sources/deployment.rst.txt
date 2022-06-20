@@ -136,6 +136,13 @@ Defining the threat objects
 
 - You can fill the lookup in pretty print format
 
+**Lookup overview in the Splunk app for Lookup Fil Editing:**
+
+.. image:: img/lookup_editor001.png
+   :alt: lookup_editor001.png
+   :align: center
+   :width: 1600px
+
 Our final lookup referencial
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -150,6 +157,12 @@ Our final lookup referencial
 
 Using the Risk Super alert action
 #################################
+
+Super Risk modular alert action
+===============================
+
+Enabling the alert action at the Risk Rule correlation search level
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Now that we have configured our RBA lookup, the ``Risk Super`` alert action needs to get called at the Risk Rule correlation level, this gets configured via the Correlation Search Editor providing 2 information:
 
@@ -170,3 +183,70 @@ Now that we have configured our RBA lookup, the ``Risk Super`` alert action need
    :align: center
    :width: 800px
 
+Calling the alert action manually for testing purposes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**You can call the alert action manually, for the testing or verification purposes, with our example:**
+
+::
+
+    | makeresults
+    | eval dest="acme-endpoint-srv001", user="jsmith", process="very_bad.exe", file_hash=md5(process)
+
+    ```This defines the use case reference```
+    | eval risk_uc_ref="edr-001"
+
+    ```This calls the Risk Super modular alert action for testing purposes```
+    | sendalert risk_super param.uc_lookup_path="SplunkEnterpriseSecuritySuite/lookups/risk_uc_ref.csv" param.uc_ref_field="risk_uc_ref"    
+
+**What this looks like:**
+
+.. image:: img/sendalert_example001.png
+   :alt: sendalert_example001.png
+   :align: center
+   :width: 1400px
+
+**Locate the execution logs:**
+
+The internal log of the modular alert execution are indexed automatically in the ``cim_modactions``:
+
+::
+
+    index="cim_modactions" sourcetype="modular_alerts:risk_super"
+
+You can change the logging level, which defaults to ``INFO``, either by deploying a local/ta_risk_superhandler.conf:
+
+::
+
+    [logging]
+    loglevel = INFO
+
+You can as well make the application visible (go in Manage applications then edit properties), then access the application configuration page.
+
+**If everything was configured properly, you will find 2 risk events newly created:**
+
+::
+
+    index=risk source="Threat - UC-EDR-001 - Rule"
+
+*What this looks like:*
+
+.. image:: img/risk_events_demo001.png
+   :alt: risk_events_demo001.png
+   :align: center
+   :width: 1400px
+
+**Let's use the datamodel now:**
+
+::
+
+    | from datamodel:"Risk"."All_Risk" | search source="Threat - UC-EDR-001 - Rule" | table _time, risk*, threat*
+
+*What this looks like:*
+
+.. image:: img/risk_events_demo002.png
+   :alt: risk_events_demo002.png
+   :align: center
+   :width: 1400px
+
+   
