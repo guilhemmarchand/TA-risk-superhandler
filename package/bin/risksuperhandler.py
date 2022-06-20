@@ -141,6 +141,39 @@ class RiskSuperHandler(StreamingCommand):
 
         for record in records:
 
+            # our original record, preserved
+            orig_record = record
+
+            # We do not touch the raw events, let's render again
+            # get time, if any
+            has_time = None
+            try:
+                has_time = orig_record['_time']
+            except Exception as e:
+                has_time = None
+
+            # get all other fields
+
+            # create a final record
+            yield_record = {}
+
+            # loop through the dict
+            for k in orig_record:
+                # This debug is very noisy
+                # logging.debug("field=\"{}\"".format(k))
+
+                # if not our input field, and not _time
+                if k != '_time':
+                    yield_record[k] = orig_record[k]
+
+            # if time was defined, add it
+            if has_time:
+                yield_record['_time'] = orig_record['_time']
+
+            # yield
+            logging.debug("orig_record=\"{}\"".format(yield_record))
+            yield yield_record
+
             # Our new record dict
             new_record = record
 
@@ -369,8 +402,6 @@ class RiskSuperHandler(StreamingCommand):
                             # risk object
                             #
 
-                            orig_new_record = new_record
-
                             # handle the format field
                             if not format_separator and len(risk_object_mv_field) == 0 and type(record[risk_object]) != list:
 
@@ -383,8 +414,28 @@ class RiskSuperHandler(StreamingCommand):
                                 new_record['risk_score'] = risk_score
                                 new_record['risk_message'] = risk_message
 
+                                # log
+                                logging.debug("before adding the risk, risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\", risk_message=\"{}\"".format(record[risk_object], risk_object_type, risk_score, risk_message))
+
+                                # Handle this mv structure in a new record
+                                mv_record = {}
+                                for k in new_record:
+                                    mv_record[k] = new_record[k]
+                                logging.debug("mv_record=\"{}\"".format(mv_record))
+
+                                # Add
+                                mv_record['risk_object'] = record[risk_object]
+                                mv_record['risk_object_type'] = risk_object_type
+                                mv_record['risk_score'] = risk_score
+                                mv_record['risk_message'] = risk_message
+
+                                # Add original fields
+                                for k in record:
+                                    if not k.startswith('__mv'):
+                                        mv_record[k] = record[k]
+
                                 # Add to final records
-                                all_new_records.append(new_record)
+                                all_new_records.append(mv_record)
 
                             else:
 
@@ -433,39 +484,6 @@ class RiskSuperHandler(StreamingCommand):
             for k in record:
                 if not k.startswith('__mv'):
                     new_record[k] = record[k]
-
-            #
-            # Final
-            #
-
-            # We do not touch the raw events, let's render again
-            # get time, if any
-            has_time = None
-            try:
-                has_time = record['_time']
-            except Exception as e:
-                has_time = None
-
-            # get all other fields
-
-            # create a final record
-            yield_record = {}
-
-            # loop through the dict
-            for k in record:
-                # This debug is very noisy
-                # logging.debug("field=\"{}\"".format(k))
-
-                # if not our input field, and not _time
-                if k != '_time':
-                    yield_record[k] = record[k]
-
-            # if time was defined, add it
-            if has_time:
-                yield_record['_time'] = record['_time']
-
-            # yield
-            yield yield_record
 
         # Shall we proceed
         if run_riskcollect:

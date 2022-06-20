@@ -339,14 +339,25 @@ def process_event(helper, *args, **kwargs):
                             # log
                             helper.log_debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
 
+                            # Handle this mv structure in a new record
+                            mv_record = {}
+                            for k in new_record:
+                                mv_record[k] = new_record[k]
+                            helper.log_debug("mv_record=\"{}\"".format(mv_record))
+
                             # Add
-                            new_record['risk_object'] = record[risk_object]
-                            new_record['risk_object_type'] = risk_object_type
-                            new_record['risk_score'] = risk_score
-                            new_record['risk_message'] = risk_message
+                            mv_record['risk_object'] = record[risk_object]
+                            mv_record['risk_object_type'] = risk_object_type
+                            mv_record['risk_score'] = risk_score
+                            mv_record['risk_message'] = risk_message
+
+                            # Add original fields
+                            for k in record:
+                                if not k.startswith('__mv'):
+                                    mv_record[k] = record[k]
 
                             # Add to final records
-                            all_new_records.append(new_record)
+                            all_new_records.append(mv_record)
 
                         else:
 
