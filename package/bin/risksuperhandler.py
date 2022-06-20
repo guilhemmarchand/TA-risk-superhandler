@@ -52,17 +52,11 @@ import cim_actions
 @Configuration()
 class RiskSuperHandler(StreamingCommand):
 
-    json_dict = Option(
-        doc='''
-        **Syntax:** **The json risk dictionnary****
-        **Description:** JSON dict.''',
-        require=False, validate=validators.Match("json_dict", r"^.*$"))
-
     uc_lookup_path = Option(
         doc='''
         **Syntax:** **The dictionnary lookup path****
         **Description:** use case reference lookup path.''',
-        require=False, validate=validators.Match("uc_lookup_path", r"^.*$"))
+        require=True, validate=validators.Match("uc_lookup_path", r"^.*$"))
 
     uc_ref_field = Option(
         doc='''
@@ -94,12 +88,6 @@ class RiskSuperHandler(StreamingCommand):
         #logging.debug(dir())
         #logging.debug("name is=\"{}\"".format(self.name))
 
-        # one of the two arguments is mandatory
-        if not self.json_dict and not self.uc_lookup_path:
-            logging.error("Invalid argument were provided, either the json_dict with the JSON dictionnary, or uc_lookup_path must be provided")
-            yield {"_time": time.time(), "response": "Invalid argument were provided, either the json_dict with the JSON dictionnary, or uc_lookup_path must be provided"}
-            sys.exit(0) # exit 0 to allow yield of the output above
-
         # Get the session key
         session_key = self._metadata.searchinfo.session_key
 
@@ -122,34 +110,24 @@ class RiskSuperHandler(StreamingCommand):
             token=session_key
         )
 
-        # Loop in the results
+        # Check if the lookup file exists
 
-        # If provided as part of a lookup
-        if self.uc_lookup_path:
-            csv_dict_file = os.path.join(splunkhome, "etc", "apps", self.uc_lookup_path)
-            logging.debug("uc_lookup_path=\"{}\"".format(self.uc_lookup_path))
-            logging.debug("Attempting to read the csv_dict from file=\"{}\"".format(csv_dict_file))
+        csv_dict_file = os.path.join(splunkhome, "etc", "apps", self.uc_lookup_path)
+        logging.debug("uc_lookup_path=\"{}\"".format(self.uc_lookup_path))
+        logging.debug("Attempting to read the csv_dict from file=\"{}\"".format(csv_dict_file))
 
-            # Check if the lookup file exists
-            if not os.path.isfile(csv_dict_file):
-                logging.error("The uc_lookup_path=\"{}\" was provided as part of the arguments, but this file does not exist or is not readable".format(csv_dict_file))
-
-        # If the JSON dictionnary is provided as an argument to the custom command        
-        elif self.json_dict:
-            jsonDict = str(self.json_dict)
-            logging.debug("json_dict=\"{}\"".format(jsonDict))
-
-            # Attempt to load the json dict as a Python object
-            try:
-                jsonObj = json.loads(jsonDict)
-                logging.debug("jsonObj was loaded successfully")
-            except Exception as e:
-                logging.error("Failure to load the json object with exception=\"{}\"".format(e))
+        # Check if the lookup file exists
+        if not os.path.isfile(csv_dict_file):
+            logging.error("The uc_lookup_path=\"{}\" was provided as part of the arguments, but this file does not exist or is not readable".format(csv_dict_file))
+            sys.exit(1)
 
         #################################################################
         # Loop through the records and proceed
         # The custom command does not alter the original search results #    
         #################################################################
+
+        # boolean used to define if the final action should be executed
+        run_riskcollect = False
 
         # Write to a tempfile
         # Get tempdir
@@ -206,34 +184,29 @@ class RiskSuperHandler(StreamingCommand):
                 # This dict will be used to be provided to the risk command
                 jsonEmptyDict = []
 
-                if self.uc_lookup_path:
+                # Open the csv lookup
+                csv_file = open(csv_dict_file, "r")
+                readCSV = csv.DictReader(csv_file, delimiter=str(u','), quotechar=str(u'"'))
 
-                    # Open the csv lookup
-                    csv_file = open(csv_dict_file, "r")
-                    readCSV = csv.DictReader(csv_file, delimiter=str(u','), quotechar=str(u'"'))
+                # log
+                logging.debug("csv_data=\"{}\"".format(readCSV))
+
+                # Loop
+                for row in readCSV:
 
                     # log
-                    logging.debug("csv_data=\"{}\"".format(readCSV))
+                    logging.debug("In lookup row=\"{}\"".format(row))
+                    logging.debug("In lookup looking for match with ref=\"{}\"".format(record[self.uc_ref_field]))
+                    logging.debug("In lookup content uc_ref_field=\"{}\"".format(row[self.uc_ref_field]))
+                    logging.debug("In lookup content json_dict=\"{}\"".format(row['json_dict']))
 
-                    # Loop
-                    for row in readCSV:
+                    logging.debug("if {} is equal to {}".format(row[self.uc_ref_field], record[self.uc_ref_field]))
 
-                        # log
-                        logging.debug("In lookup row=\"{}\"".format(row))
-                        logging.debug("In lookup looking for match with ref=\"{}\"".format(record[self.uc_ref_field]))
-                        logging.debug("In lookup content uc_ref_field=\"{}\"".format(row[self.uc_ref_field]))
-                        logging.debug("In lookup content json_dict=\"{}\"".format(row['json_dict']))
-
-                        logging.debug("if {} is equal to {}".format(row[self.uc_ref_field], record[self.uc_ref_field]))
-
-                        if row[self.uc_ref_field] == record[self.uc_ref_field]:
-                            logging.debug("In lookup record found, row=\"{}\"".format(row))
-                            jsonDict = row['json_dict']
-
-                # else if get from argument
-                elif self.json_dict:
-                    jsonDict = str(self.json_dict)
-                    logging.info("json_dict=\"{}\"".format(jsonDict))
+                    if row[self.uc_ref_field] == record[self.uc_ref_field]:
+                        logging.debug("In lookup record found, row=\"{}\"".format(row))
+                        jsonDict = row['json_dict']
+                        run_riskcollect = True
+                        break
 
                 # process if we have a JSON rule object
                 if not jsonDict:
@@ -459,10 +432,7 @@ class RiskSuperHandler(StreamingCommand):
             # Add all fields from the record, except __mv structure
             for k in record:
                 if not k.startswith('__mv'):
-                    logging.debug("Adding field=\"{}\"".format(k))
                     new_record[k] = record[k]
-                else:
-                    logging.debug("Excluding field=\"{}\"".format(k))
 
             #
             # Final
@@ -497,51 +467,65 @@ class RiskSuperHandler(StreamingCommand):
             # yield
             yield yield_record
 
-        #
-        # Write final json
-        #
+        # Shall we proceed
+        if run_riskcollect:
 
-        # Write our json record
-        results_json.writelines(json.dumps(all_new_records))
-        results_json.seek(0)
+            #
+            # Write final json
+            #
 
-        #
-        # Set and run a Splunk query using the Python SDK
-        #
+            # Write our json record
+            results_json.writelines(json.dumps(all_new_records))
+            results_json.seek(0)
 
-        splQuery = "| riskjsonload json_path=\"" + results_json.name + "\" | spath | rename \"*{}\" as \"*\"" + "\n" +\
-            "| eval search_name=\"" + str(search_name) + "\"\n" +\
-            "| expandtoken" + "\n" +\
-            "| eval _key=search_name | lookup local=true correlationsearches_lookup _key OUTPUTNEW annotations, description as savedsearch_description | spathannotations" +\
-            "| collectrisk search_name=\"" + str(search_name) + "\""
+            #
+            # Set and run a Splunk query using the Python SDK
+            #
 
-        logging.debug("splQuery=\"{}\"".format(splQuery))
+            splQuery = "| riskjsonload json_path=\"" + results_json.name + "\" | spath | rename \"*{}\" as \"*\"" + "\n" +\
+                "| eval search_name=\"" + str(search_name) + "\"\n" +\
+                "| expandtoken" + "\n" +\
+                "| eval _key=search_name | lookup local=true correlationsearches_lookup _key OUTPUTNEW annotations, description as savedsearch_description | spathannotations" +\
+                "| collectrisk search_name=\"" + str(search_name) + "\""
 
-        # Run a search in Python
-        kwargs_search = {"app": "TA-risk-superhandler", "earliest_time": "-5m", "latest_time": "now"}
+            logging.debug("splQuery=\"{}\"".format(splQuery))
 
-        try:
-            # spawn the search and get the results
-            searchresults = service.jobs.oneshot(splQuery, **kwargs_search)
+            # Run a search in Python
+            kwargs_search = {"app": "TA-risk-superhandler", "earliest_time": "-5m", "latest_time": "now"}
 
-            reader = results.ResultsReader(searchresults)
-            for item in reader:
-                query_result = item
-            logging.info("risk command was successful, result=\"{}\"".format(json.dumps(query_result, indent=0)))
+            try:
 
-        except Exception as e:
-            logging.error("risk command has failed with exception=\"{}\"".format(e))
+                # spawn the search and get the results
+                searchresults = service.jobs.oneshot(splQuery, **kwargs_search)
 
-        finally:
+                reader = results.ResultsReader(searchresults)
+                for item in reader:
+                    query_result = item
+                logging.info("risk command was successful, result=\"{}\"".format(json.dumps(query_result, indent=0)))
 
-            # close the json
-            results_json.close()
+            except Exception as e:
+                logging.error("risk command has failed with exception=\"{}\"".format(e))
 
+            finally:
+
+                # close the json
+                results_json.close()
+
+                # delete
+                if os.path.isfile(results_json.name):
+                    try:
+                        os.remove(results_json.name)
+                    except Exception as e:
+                        logging.error("Failure to remove temporary file, path=\"{}\", exception=\"{}\"".format(results_json.name, e))
+
+        # ensure not to leave a file on the file-system
+        else:
             # delete
             if os.path.isfile(results_json.name):
                 try:
                     os.remove(results_json.name)
                 except Exception as e:
                     logging.error("Failure to remove temporary file, path=\"{}\", exception=\"{}\"".format(results_json.name, e))
+
 
 dispatch(RiskSuperHandler, sys.argv, sys.stdin, sys.stdout, __name__)

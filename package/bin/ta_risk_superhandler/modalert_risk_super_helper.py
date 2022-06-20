@@ -88,6 +88,9 @@ def process_event(helper, *args, **kwargs):
     # The custom command does not alter the original search results #    
     #################################################################
 
+    # boolean used to define if the final action should be executed
+    run_riskcollect = False
+
     # Write to a tempfile
     # Get tempdir
     tempdir = os.path.join(splunkhome, 'etc', 'apps', 'TA-risk-superhandler', 'tmp')
@@ -166,6 +169,8 @@ def process_event(helper, *args, **kwargs):
                     if row[uc_ref_field] == record[uc_ref_field]:
                         helper.log_debug("In lookup record found, row=\"{}\"".format(row))
                         jsonDict = row['json_dict']
+                        run_riskcollect = True
+                        break
 
             # process if we have a JSON rule object
             if not jsonDict:
@@ -389,56 +394,66 @@ def process_event(helper, *args, **kwargs):
         # Add all fields from the record, except __mv structure
         for k in record:
             if not k.startswith('__mv'):
-                helper.log_debug("Adding field=\"{}\"".format(k))
                 new_record[k] = record[k]
-            else:
-                helper.log_debug("Excluding field=\"{}\"".format(k))
 
-    #
-    # Write final json
-    #
+    # Shall we proceed
+    if run_riskcollect:
 
-    # Write our json record
-    results_json.writelines(json.dumps(all_new_records))
-    results_json.seek(0)
+        #
+        # Write final json
+        #
 
-    #
-    # Set and run a Splunk query using the Python SDK
-    #
+        # Write our json record
+        results_json.writelines(json.dumps(all_new_records))
+        results_json.seek(0)
 
-    splQuery = "| riskjsonload json_path=\"" + results_json.name + "\" | spath | rename \"*{}\" as \"*\"" + "\n" +\
-        "| eval search_name=\"" + str(search_name) + "\"\n" +\
-        "| expandtoken" + "\n" +\
-        "| eval _key=search_name | lookup local=true correlationsearches_lookup _key OUTPUTNEW annotations, description as savedsearch_description | spathannotations" +\
-        "| collectrisk search_name=\"" + str(search_name) + "\""
+        #
+        # Set and run a Splunk query using the Python SDK
+        #
 
-    helper.log_debug("splQuery=\"{}\"".format(splQuery))
+        splQuery = "| riskjsonload json_path=\"" + results_json.name + "\" | spath | rename \"*{}\" as \"*\"" + "\n" +\
+            "| eval search_name=\"" + str(search_name) + "\"\n" +\
+            "| expandtoken" + "\n" +\
+            "| eval _key=search_name | lookup local=true correlationsearches_lookup _key OUTPUTNEW annotations, description as savedsearch_description | spathannotations" +\
+            "| collectrisk search_name=\"" + str(search_name) + "\""
 
-    # Run a search in Python
-    kwargs_search = {"app": "TA-risk-superhandler", "earliest_time": "-5m", "latest_time": "now"}
+        helper.log_debug("splQuery=\"{}\"".format(splQuery))
 
-    try:
-        # spawn the search and get the results
-        searchresults = service.jobs.oneshot(splQuery, **kwargs_search)
+        # Run a search in Python
+        kwargs_search = {"app": "TA-risk-superhandler", "earliest_time": "-5m", "latest_time": "now"}
 
-        reader = results.ResultsReader(searchresults)
-        for item in reader:
-            query_result = item
-        helper.log_info("risk command was successful, result=\"{}\"".format(json.dumps(query_result, indent=0)))
+        try:
 
-    except Exception as e:
-        helper.log_error("risk command has failed with exception=\"{}\"".format(e))
+            # spawn the search and get the results
+            searchresults = service.jobs.oneshot(splQuery, **kwargs_search)
 
-    #finally:
+            reader = results.ResultsReader(searchresults)
+            for item in reader:
+                query_result = item
+            helper.log_info("risk command was successful, result=\"{}\"".format(json.dumps(query_result, indent=0)))
 
-        # close the json
-        #results_json.close()
+        except Exception as e:
+            helper.log_error("risk command has failed with exception=\"{}\"".format(e))
 
+        finally:
+
+            # close the json
+            results_json.close()
+
+            # delete
+            if os.path.isfile(results_json.name):
+                try:
+                    os.remove(results_json.name)
+                except Exception as e:
+                    helper.log_error("Failure to remove temporary file, path=\"{}\", exception=\"{}\"".format(results_json.name, e))
+
+    # ensure not to leave a file on the file-system
+    else:
         # delete
-        #if os.path.isfile(results_json.name):
-            #try:
-            #    os.remove(results_json.name)
-            #except Exception as e:
-            #    helper.log_error("Failure to remove temporary file, path=\"{}\", exception=\"{}\"".format(results_json.name, e))
+        if os.path.isfile(results_json.name):
+            try:
+                os.remove(results_json.name)
+            except Exception as e:
+                helper.log_error("Failure to remove temporary file, path=\"{}\", exception=\"{}\"".format(results_json.name, e))
 
     return 0
