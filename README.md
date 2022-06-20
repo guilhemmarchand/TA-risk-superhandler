@@ -1,4 +1,4 @@
-# JIRA Service Desk simple addon
+# Risk Super Handler for Splunk Enterprise Security - Implement Risk Based Alerting
 
 | branch | build status                                                                                                                                                                         |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
