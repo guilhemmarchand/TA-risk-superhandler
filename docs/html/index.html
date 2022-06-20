@@ -1,0 +1,289 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Welcome to the Risk Super Handler for Splunk Enterprise Security &mdash; TA-risk-superhandler 1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/custom.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Compatibility" href="compatibility.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="#" class="icon icon-home"> TA-risk-superhandler
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="compatibility.html">Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="requirements.html">Requirements</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment and base configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="userguide.html">User guide</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Release notes</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">TA-risk-superhandler</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content style-external-links">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Welcome to the Risk Super Handler for Splunk Enterprise Security</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="welcome-to-the-risk-super-handler-for-splunk-enterprise-security">
+<h1>Welcome to the Risk Super Handler for Splunk Enterprise Security<a class="headerlink" href="#welcome-to-the-risk-super-handler-for-splunk-enterprise-security" title="Permalink to this headline">¶</a></h1>
+<p><strong>The Risk Super handler for Splunk Enterprise security provides services for:</strong></p>
+<ul class="simple">
+<li><p>Generating risk events using the Splunk Enterprise Security risk framework for <strong>Risk Based Alerting purposes (RBA)</strong> with additional levels of features</p></li>
+<li><p>Centralizing the risk definition in a central lookup file referencial, rather than configured on a per correlation search basis</p></li>
+<li><p>Defining a use case reference logic, which is used to lookup the risk definition and allows advanced dynamic rule definition use cases</p></li>
+<li><p>Allowing different levels of risk objects definition, with different risk messages and risk score per risk object</p></li>
+<li><p>Facilitating the transition from a traditional SIEM detection per use case to a Risk Based Alerting approach (RBA)</p></li>
+</ul>
+<p><em>In a nutshell:</em></p>
+<ul class="simple">
+<li><p>A lookup file is created and acts as the central reference for the Risk Rules (RR) use cases, and their risk definition</p></li>
+<li><p>The application provides a “Risk super” alert action which can be enabled per Risk Rule correletation search, as well as a streaming custom command that can be called directly to generate the risk events from upstream results</p></li>
+<li><p>When the Risk Rule triggers, the backend lookups the use case referencial for a match with the use case reference, if there is match it loads the risk rules definition from the lookup</p></li>
+<li><p>The Risk definition is applied to the results of the correlation search, and submits these in a pre-formated manner to the Splunk Enterprise Security collectrisk custom command</p></li>
+<li><p>Risk events are created transparently depending on the risk rules and the events content</p></li>
+<li><p>Risk messages can differ per risk object, as well as the risk score</p></li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h1>Overview:<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="compatibility.html">Compatibility</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="compatibility.html#splunk-compatibility">Splunk compatibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compatibility.html#python-support">Python support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compatibility.html#splunk-enterprise-security">Splunk Enterprise Security</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compatibility.html#standalone-deployment-distributed-and-search-head-cluster">Standalone deployment, distributed and Search Head Cluster</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="requirements.html">Requirements</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="requirements.html#splunk-core">Splunk Core</a></li>
+<li class="toctree-l2"><a class="reference internal" href="requirements.html#splunk-enterprise-security">Splunk Enterprise Security</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="deployment-and-configuration">
+<h1>Deployment and configuration:<a class="headerlink" href="#deployment-and-configuration" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment and base configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#installation">Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="user-guide">
+<h1>User guide:<a class="headerlink" href="#user-guide" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="userguide.html">User guide</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="versions-build-history-and-development">
+<h1>Versions, build history and development:<a class="headerlink" href="#versions-build-history-and-development" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Release notes</a></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="compatibility.html" class="btn btn-neutral float-right" title="Compatibility" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2022, Guilhem Marchand.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
