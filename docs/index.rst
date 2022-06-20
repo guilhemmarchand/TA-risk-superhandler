@@ -20,6 +20,18 @@ Welcome to the Risk Super Handler for Splunk Enterprise Security
 - Risk events are created transparently depending on the risk rules and the events content
 - Risk messages can differ per risk object, as well as the risk score
 
+.. image:: img/index_001.png
+   :alt: index001.png
+   :align: center
+   :width: 1400px
+   :class: with-border
+
+.. image:: img/index_002.png
+   :alt: index002.png
+   :align: center
+   :width: 1400px
+   :class: with-border
+
 Overview:
 =========
 

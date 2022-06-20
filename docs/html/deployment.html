@@ -437,6 +437,25 @@
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;risk_object&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_object_type&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;risk_score&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;risk_message&quot;</span><span class="p">:</span> <span class="s2">&quot;Endpoint security event detected involving user=$risk_object$&quot;</span><span class="p">,</span> <span class="s2">&quot;format_separator&quot;</span><span class="p">:</span> <span class="s2">&quot;|&quot;</span><span class="p">}</span>
 </pre></div>
 </div>
+<p><em>Let’s consider the following example, which mixes this plus multivalue fields:</em></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>| makeresults
+    | eval dest=&quot;acme-endpoint-srv001&quot;, user=&quot;jsmith&quot;, process=&quot;very_bad.exe&quot;, file_hash=md5(process)
+| append [ | makeresults
+    | eval dest=&quot;acme-endpoint-srv001&quot;, user=&quot;jdoe&quot;, process=&quot;very_silly.exe&quot;, file_hash=md5(process) ]
+
+```Simulate```
+
+| stats values(user) as user, count, values(process) as process, values(file_hash) as file_hash by dest
+
+```This will be a string delimited format```
+| eval user=mvjoin(user, &quot;|&quot;)
+
+```This defines the use case reference```
+| eval risk_uc_ref=&quot;edr-003&quot;
+</pre></div>
+</div>
+<p><em>Which leads to the creation of risk events:</em></p>
+<a class="with-border reference internal image-reference" href="_images/risk_events_demo008.png"><img alt="risk_events_demo008.png" class="with-border align-center" src="_images/risk_events_demo008.png" style="width: 1400px;" /></a>
 </div>
 </div>
 <div class="section" id="troubleshoot">

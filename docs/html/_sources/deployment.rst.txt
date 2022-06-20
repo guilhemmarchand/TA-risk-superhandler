@@ -350,6 +350,32 @@ You can specify in the Risk definition rule, the special option ``format_separat
 
     {"risk_object": "user", "risk_object_type": "user", "risk_score": 20, "risk_message": "Endpoint security event detected involving user=$risk_object$", "format_separator": "|"}
 
+*Let's consider the following example, which mixes this plus multivalue fields:*
+
+::
+
+    | makeresults
+        | eval dest="acme-endpoint-srv001", user="jsmith", process="very_bad.exe", file_hash=md5(process)
+    | append [ | makeresults
+        | eval dest="acme-endpoint-srv001", user="jdoe", process="very_silly.exe", file_hash=md5(process) ]
+        
+    ```Simulate```
+        
+    | stats values(user) as user, count, values(process) as process, values(file_hash) as file_hash by dest
+
+    ```This will be a string delimited format```
+    | eval user=mvjoin(user, "|")
+
+    ```This defines the use case reference```
+    | eval risk_uc_ref="edr-003"
+
+*Which leads to the creation of risk events:*
+
+.. image:: img/risk_events_demo008.png
+   :alt: risk_events_demo008.png
+   :align: center
+   :width: 1400px
+   :class: with-border
 
 Troubleshoot
 ############
