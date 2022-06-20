@@ -1,8 +1,8 @@
 # Risk Super Handler for Splunk Enterprise Security - Implement Risk Based Alerting
 
-| branch | build status                                                                                                                                                                         |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| master | [![master status](https://circleci.com/gh/guilhemmarchand/TA-risk-superhandler/tree/master.svg?style=svg)](https://circleci.com/gh/guilhemmarchand/TA-risk-superhandler/tree/master) |
+| branch | build status                                                                                                                                                                   |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| main   | [![main status](https://circleci.com/gh/guilhemmarchand/TA-risk-superhandler/tree/main.svg?style=svg)](https://circleci.com/gh/guilhemmarchand/TA-risk-superhandler/tree/main) |
 
 ## The Risk Super handler for Splunk Enterprise security provides services for
 
