@@ -143,6 +143,7 @@ def process_event(helper, *args, **kwargs):
 
             # Start     
             jsonDict = None
+            jsonObj = None
 
             # This dict will be used to be provided to the risk command
             jsonEmptyDict = []
