@@ -237,7 +237,7 @@ class RiskSuperHandler(StreamingCommand):
                     logging.debug("if {} is equal to {}".format(row[self.uc_ref_field], record[self.uc_ref_field]))
 
                     if row[self.uc_ref_field] == record[self.uc_ref_field]:
-                        logging.info("uc_ref=\"{}\", use case lookup record found, row=\"{}\"".format(record[self.uc_ref_field], row))
+                        logging.info("uc_ref=\"{}\", use case lookup record found, row=\"{}\"".format(record[self.uc_ref_field], json.dumps(row)))
                         jsonDict = row['json_dict']
                         run_riskcollect = True
                         break
@@ -381,7 +381,7 @@ class RiskSuperHandler(StreamingCommand):
                                 format_separator = None
 
                             # log
-                            logging.info("risk rule loaded, risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\, risk_message=\"{}\", format_field=\"{}\"".format(risk_object, risk_object_type, risk_score, risk_message, format_separator))
+                            logging.info("risk rule loaded, uc_ref=\"{}\", risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\", risk_message=\"{}\", format_field=\"{}\"".format(record[self.uc_ref_field], risk_object, risk_object_type, risk_score, risk_message, format_separator))
 
                             # Execute a single search for optimisation purposes
 

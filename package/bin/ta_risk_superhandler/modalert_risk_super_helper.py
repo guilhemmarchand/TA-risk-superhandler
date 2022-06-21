@@ -168,7 +168,7 @@ def process_event(helper, *args, **kwargs):
                     helper.log_debug("if {} is equal to {}".format(row[uc_ref_field], record[uc_ref_field]))
 
                     if row[uc_ref_field] == record[uc_ref_field]:
-                        helper.log_info("uc_ref=\"{}\", use case lookup record found, row=\"{}\"".format(record[uc_ref_field], row))
+                        helper.log_info("uc_ref=\"{}\", use case lookup record found, row=\"{}\"".format(record[uc_ref_field], json.dumps(row)))
                         jsonDict = row['json_dict']
                         run_riskcollect = True
                         break
@@ -312,7 +312,7 @@ def process_event(helper, *args, **kwargs):
                             format_separator = None
 
                         # log
-                        helper.log_info("risk rule loaded, risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\, risk_message=\"{}\", format_field=\"{}\"".format(risk_object, risk_object_type, risk_score, risk_message, format_separator))
+                        helper.log_info("risk rule loaded, uc_ref=\"{}\", risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\", risk_message=\"{}\", format_field=\"{}\"".format(record[uc_ref_field], risk_object, risk_object_type, risk_score, risk_message, format_separator))
 
                         # Execute a single search for optimisation purposes
 
