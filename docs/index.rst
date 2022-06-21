@@ -41,6 +41,7 @@ Overview:
    compatibility
    requirements
    download
+   about
 
 Deployment, configuration and usage:
 ====================================
