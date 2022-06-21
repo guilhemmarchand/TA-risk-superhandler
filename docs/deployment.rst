@@ -163,7 +163,7 @@ JSON consistency
 
 - https://jsonlint.com/
 
-**What is the JSON objec is inconsistent?**
+**What if the JSON object definition is inconsistent?**
 
 If for some reasons, the JSON is not well formated, the backend will raise an exception, example:
 

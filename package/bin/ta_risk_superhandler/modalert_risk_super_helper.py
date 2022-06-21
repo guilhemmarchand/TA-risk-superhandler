@@ -135,6 +135,7 @@ def process_event(helper, *args, **kwargs):
                 helper.log_debug("uc_ref=\"{}\"".format(uc_ref))
             except Exception as e:
                 helper.log_error("failed to retrieve the uc_ref from the upstream results")
+                run_riskcollect = False
 
             ####################        
             # Get the JSON dict
@@ -175,6 +176,7 @@ def process_event(helper, *args, **kwargs):
             # process if we have a JSON rule object
             if not jsonDict:
                 helper.log_info("No lookup record match for use case uc_ref_field=\"{}\", risk event creation will not be actioned".format(record[uc_ref_field]))
+                run_riskcollect = False
 
             else:
                 # Attempt to load the json dict as a Python object
@@ -183,6 +185,7 @@ def process_event(helper, *args, **kwargs):
                     helper.log_info("record match for use case uc_ref_field=\"{}\", risk_rules were loaded successfully, jsonObj=\"{}\"".format(record[uc_ref_field], json.dumps(jsonObj)))
                 except Exception as e:
                     helper.log_error("Failure to load the json object, use case uc_ref_field=\"{}\", exception=\"{}\"".format(record[uc_ref_field], e))
+                    run_riskcollect = False
 
                 # Load each JSON within the JSON array
                 # Add the very beginning of our pseudo event
