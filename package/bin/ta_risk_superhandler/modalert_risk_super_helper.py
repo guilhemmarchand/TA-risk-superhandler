@@ -434,7 +434,7 @@ def process_event(helper, *args, **kwargs):
         # Set and run a Splunk query using the Python SDK
         #
 
-        splQuery = "| riskjsonload json_path=\"" + results_json.name + "\" | spath | rename \"*{}\" as \"*\"" + "\n" +\
+        splQuery = "| riskjsonload json_path=\"" + results_json.name + "\" \n" +\
             "| eval search_name=\"" + str(search_name) + "\"\n" +\
             "| expandtoken" + "\n" +\
             "| eval _key=search_name | lookup local=true correlationsearches_lookup _key OUTPUTNEW annotations, description as savedsearch_description | spathannotations" +\

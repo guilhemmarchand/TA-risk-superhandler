@@ -78,6 +78,39 @@ class JsonRestHandler(GeneratingCommand):
         logging.debug("records=\"{}\"".format(records))
 
         for record in records:
-            yield {'_time': time.time(), '_raw': record }
+
+            # We do not touch the raw events, let's render again
+            # get time, if any
+            has_time = None
+            try:
+                has_time = record['_time']
+            except Exception as e:
+                has_time = None
+
+            # get all other fields
+
+            # create a final record
+            yield_record = {}
+
+            # loop through the dict
+            for k in record:
+                # This debug is very noisy
+                # logging.debug("field=\"{}\"".format(k))
+
+                # if not our input field, and not _time
+                if k != '_time':
+                    yield_record[k] = record[k]
+
+            # if time was defined, add it
+            if has_time:
+                yield_record['_time'] = record['_time']
+
+            # Add _raw
+                yield_record['_raw'] = record
+
+            # yield
+            logging.debug("record=\"{}\"".format(yield_record))
+            yield yield_record            
+
 
 dispatch(JsonRestHandler, sys.argv, sys.stdin, sys.stdout, __name__)
