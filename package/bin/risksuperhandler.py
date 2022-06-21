@@ -373,100 +373,70 @@ class RiskSuperHandler(StreamingCommand):
                             risk_score = jsonSubObj['risk_score']
                             risk_message = jsonSubObj['risk_message']
 
-                            # Allow a field to be provided as part of an mv structure by submitting a delimiter, if no delimiter assume the field is a regular
-                            # single value
+                            # Verify that the risk_object field exists, and proceed
+                            risk_object_value = None
                             try:
-                                format_separator = jsonSubObj['format_separator']
+                                risk_object_value = record[risk_object]
                             except Exception as e:
-                                format_separator = None
+                                logging.error("uc_ref=\"{}\", cannot extract the risk_object=\"{}\", the field does not exist and will be ignored, record=\"{}\"".format(record[self.uc_ref_field], risk_object, json.dumps(record)))
 
-                            # log
-                            logging.info("risk rule loaded, uc_ref=\"{}\", risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\", risk_message=\"{}\", format_field=\"{}\"".format(record[self.uc_ref_field], risk_object, risk_object_type, risk_score, risk_message, format_separator))
+                            if risk_object_value:
 
-                            # Execute a single search for optimisation purposes
-
-                            # The risk_object value can be provided in 3 options:
-                            # - as a single value
-                            # - in a mv structured (__mv_risk_object)
-                            # - in a native list
-                            # - in a pseudo mv structured to be expanded, via a string delimiter
-
-                            # check an mv field exist for this
-                            risk_object_mv_field = []
-                            try:
-                                risk_object_mv_field = cim_actions.parse_mv(record["__mv_" + str(risk_object)])                       
-                                logging.debug("risk_object is an mv field, risk_object_mv_field=\"{}\"".format(risk_object_mv_field))
-
-                            except Exception as e:
-                                logging.debug("risk_object was not found in a mv format, exception=\"{}\"".format(e))
-
-
-                            #
-                            # risk object
-                            #
-
-                            # handle the format field
-                            if not format_separator and len(risk_object_mv_field) == 0 and type(record[risk_object]) != list:
+                                # Allow a field to be provided as part of an mv structure by submitting a delimiter, if no delimiter assume the field is a regular
+                                # single value
+                                try:
+                                    format_separator = jsonSubObj['format_separator']
+                                except Exception as e:
+                                    format_separator = None
 
                                 # log
-                                logging.debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
+                                logging.info("risk rule loaded, uc_ref=\"{}\", risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\", risk_message=\"{}\", format_field=\"{}\"".format(record[self.uc_ref_field], risk_object, risk_object_type, risk_score, risk_message, format_separator))
 
-                                # Add
-                                new_record['risk_object'] = record[risk_object]
-                                new_record['risk_object_type'] = risk_object_type
-                                new_record['risk_score'] = risk_score
-                                new_record['risk_message'] = risk_message
+                                # Execute a single search for optimisation purposes
 
-                                # log
-                                logging.debug("before adding the risk, risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\", risk_message=\"{}\"".format(record[risk_object], risk_object_type, risk_score, risk_message))
+                                # The risk_object value can be provided in 3 options:
+                                # - as a single value
+                                # - in a mv structured (__mv_risk_object)
+                                # - in a native list
+                                # - in a pseudo mv structured to be expanded, via a string delimiter
 
-                                # Handle this mv structure in a new record
-                                mv_record = {}
-                                for k in new_record:
-                                    mv_record[k] = new_record[k]
-                                logging.debug("mv_record=\"{}\"".format(mv_record))
+                                # check an mv field exist for this
+                                risk_object_mv_field = []
+                                try:
+                                    risk_object_mv_field = cim_actions.parse_mv(record["__mv_" + str(risk_object)])                       
+                                    logging.debug("risk_object is an mv field, risk_object_mv_field=\"{}\"".format(risk_object_mv_field))
 
-                                # Add
-                                mv_record['risk_object'] = record[risk_object]
-                                mv_record['risk_object_type'] = risk_object_type
-                                mv_record['risk_score'] = risk_score
-                                mv_record['risk_message'] = risk_message
+                                except Exception as e:
+                                    logging.debug("risk_object was not found in a mv format, exception=\"{}\"".format(e))
 
-                                # Add original fields
-                                for k in record:
-                                    if not k.startswith('__mv'):
-                                        mv_record[k] = record[k]
 
-                                # Add to final records
-                                all_new_records.append(mv_record)
+                                #
+                                # risk object
+                                #
 
-                            else:
+                                # handle the format field
+                                if not format_separator and len(risk_object_mv_field) == 0 and type(record[risk_object]) != list:
 
-                                logging.debug("the risk object format is a multivalue format")
-                                
-                                # if from an __mv_risk_object field
-                                if len(risk_object_mv_field) > 0:
-                                    risk_object_list = risk_object_mv_field
+                                    # log
+                                    logging.debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
 
-                                # or via the seperator in single value string separated
-                                elif format_separator:                            
-                                    risk_object_list = record[risk_object].split(format_separator)
+                                    # Add
+                                    new_record['risk_object'] = record[risk_object]
+                                    new_record['risk_object_type'] = risk_object_type
+                                    new_record['risk_score'] = risk_score
+                                    new_record['risk_message'] = risk_message
 
-                                # stored in a native list
-                                else:
-                                    risk_object_list = record[risk_object]
-
-                                for risk_subobject in risk_object_list:
-                                    logging.debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
+                                    # log
+                                    logging.debug("before adding the risk, risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\", risk_message=\"{}\"".format(record[risk_object], risk_object_type, risk_score, risk_message))
 
                                     # Handle this mv structure in a new record
                                     mv_record = {}
                                     for k in new_record:
                                         mv_record[k] = new_record[k]
-                                    log.debug("mv_record=\"{}\"".format(mv_record))
+                                    logging.debug("mv_record=\"{}\"".format(mv_record))
 
                                     # Add
-                                    mv_record['risk_object'] = risk_subobject
+                                    mv_record['risk_object'] = record[risk_object]
                                     mv_record['risk_object_type'] = risk_object_type
                                     mv_record['risk_score'] = risk_score
                                     mv_record['risk_message'] = risk_message
@@ -478,6 +448,45 @@ class RiskSuperHandler(StreamingCommand):
 
                                     # Add to final records
                                     all_new_records.append(mv_record)
+
+                                else:
+
+                                    logging.debug("the risk object format is a multivalue format")
+                                    
+                                    # if from an __mv_risk_object field
+                                    if len(risk_object_mv_field) > 0:
+                                        risk_object_list = risk_object_mv_field
+
+                                    # or via the seperator in single value string separated
+                                    elif format_separator:                            
+                                        risk_object_list = record[risk_object].split(format_separator)
+
+                                    # stored in a native list
+                                    else:
+                                        risk_object_list = record[risk_object]
+
+                                    for risk_subobject in risk_object_list:
+                                        logging.debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
+
+                                        # Handle this mv structure in a new record
+                                        mv_record = {}
+                                        for k in new_record:
+                                            mv_record[k] = new_record[k]
+                                        log.debug("mv_record=\"{}\"".format(mv_record))
+
+                                        # Add
+                                        mv_record['risk_object'] = risk_subobject
+                                        mv_record['risk_object_type'] = risk_object_type
+                                        mv_record['risk_score'] = risk_score
+                                        mv_record['risk_message'] = risk_message
+
+                                        # Add original fields
+                                        for k in record:
+                                            if not k.startswith('__mv'):
+                                                mv_record[k] = record[k]
+
+                                        # Add to final records
+                                        all_new_records.append(mv_record)
 
             # Initial exception handler
             except Exception as e:
