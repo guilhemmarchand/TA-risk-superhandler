@@ -234,27 +234,26 @@ class RiskSuperHandler(StreamingCommand):
                     logging.debug("In lookup looking for match with ref=\"{}\"".format(record[self.uc_ref_field]))
                     logging.debug("In lookup content uc_ref_field=\"{}\"".format(row[self.uc_ref_field]))
                     logging.debug("In lookup content json_dict=\"{}\"".format(row['json_dict']))
-
                     logging.debug("if {} is equal to {}".format(row[self.uc_ref_field], record[self.uc_ref_field]))
 
                     if row[self.uc_ref_field] == record[self.uc_ref_field]:
-                        logging.debug("In lookup record found, row=\"{}\"".format(row))
+                        logging.info("uc_ref=\"{}\", use case lookup record found, row=\"{}\"".format(record[self.uc_ref_field], row))
                         jsonDict = row['json_dict']
                         run_riskcollect = True
                         break
 
                 # process if we have a JSON rule object
                 if not jsonDict:
-                    logging.info("No lookup record match for use case uc_ref_field=\"{}\", risk event creation will not be actioned".format(record[self.uc_ref_field]))
+                    logging.info("No lookup record match for use case uc_ref=\"{}\", risk event creation will not be actioned".format(record[self.uc_ref_field]))
                     run_riskcollect = False
 
                 else:
                     # Attempt to load the json dict as a Python object
                     try:
                         jsonObj = json.loads(jsonDict)
-                        logging.info("record match for use case uc_ref_field=\"{}\", risk_rules were loaded successfully, jsonObj=\"{}\"".format(record[self.uc_ref_field], json.dumps(jsonObj)))
+                        logging.info("record match for use case uc_ref=\"{}\", risk_rules were loaded successfully, jsonObj=\"{}\"".format(record[self.uc_ref_field], json.dumps(jsonObj)))
                     except Exception as e:
-                        logging.error("Failure to load the json object, use case uc_ref_field=\"{}\", exception=\"{}\"".format(record[self.uc_ref_field], e))
+                        logging.error("Failure to load the json object, use case uc_ref=\"{}\", exception=\"{}\"".format(record[self.uc_ref_field], e))
                         run_riskcollect = False
 
                     # Load each JSON within the JSON array
