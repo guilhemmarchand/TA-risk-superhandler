@@ -1,13 +1,20 @@
-# Risk Super Handler for Enterprise Security
+# Risk Super Handler for Splunk Enterprise Security - Implement Risk Based Alerting
 
-## Lookup example
+## The Risk Super handler for Splunk Enterprise security provides services for
 
-- Create a lookup, shared either at the app level of global level, the format of the lookup should adopt the following structure:
+- Generating risk events using the Splunk Enterprise Security risk framework for **Risk Based Alerting purposes (RBA)** with additional levels of features
+- Centralizing the risk definition in a central lookup file referencial, rather than configured on a per correlation search basis
+- Defining a use case reference logic, which is used to lookup the risk definition and allows advanced dynamic rule definition use cases
+- Allowing different levels of risk objects definition, with different risk messages and risk score per risk object
+- Facilitating the transition from a traditional SIEM detection per use case to a Risk Based Alerting approach (RBA)
 
-```
-code_id,json_dict
-uc_ref_001,[{"risk_object": "src", "risk_object_type": "system", "risk_score": 100, "risk_message": "Too many auth failures from user=$user$", "format_separator": "|"}, {"risk_object": "user", "risk_object_type": "user", "risk_score": 100, "risk_message": "Too many auth failures from user=$user$"}]
-```
+_In a nutshell:_
 
-## Calling the action
+- A lookup file is created and acts as the central reference for the Risk Rules (RR) use cases, and their risk definition
+- The application provides a "Risk super" alert action which can be enabled per Risk Rule correletation search, as well as a streaming custom command that can be called directly to generate the risk events from upstream results
+- When the Risk Rule triggers, the backend lookups the use case referencial for a match with the use case reference, if there is a match, it loads the risk rules definition from the lookup
+- The Risk definition is applied to the results of the correlation search, and submits these in a pre-formated manner to the Splunk Enterprise Security collectrisk custom command
+- Risk events are created transparently depending on the risk rules and the events content
+- Risk messages can differ per risk object, as well as the risk score
 
+See the online documentation: https://TA-risk-superhandler.readthedocs.io/en/latest/
