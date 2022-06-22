@@ -13,6 +13,6 @@ Splunk Base
 
 *This is pending for now, come back later!*
 
-**Download ;atest releases from Splunk Base:**
+**Download latest releases from Splunk Base:**
 
 - https://splunkbase.splunk.com/app/6487
