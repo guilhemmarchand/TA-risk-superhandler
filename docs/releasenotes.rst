@@ -1,6 +1,14 @@
 Release notes
 -------------
 
+Version 1.0.15
+==============
+
+- Enhancement: Addresses the deprecation of the Python SDK results.ResultsReader method replaced by results.JSONResultsReader
+- Enhancement: Allows enforcing a service account if running the risksuperhandler custom command, this allows avoiding generating risks unless the user running the command matches the value set
+- Enhancement: Avoid failing if the user lacks privileges to retrieve the app level logging level configuration
+- Docs: fix some typos
+
 Version 1.0.14
 ==============
 

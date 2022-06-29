@@ -64,21 +64,30 @@ class RiskSuperHandler(StreamingCommand):
         **Description:** use case reference field name.''',
         require=True, validate=validators.Match("uc_ref_field", r"^.*$"))
 
+    uc_svc_account = Option(
+        doc='''
+        **Syntax:** **Check service account****
+        **Description:** If this option is set, risk events will be generated only the user username running the command matches this value.''',
+        require=False, validate=validators.Match("uc_svc_account", r"^.*$"))
+
     # status will be statically defined as imported
 
     def stream(self, records):
 
         # set loglevel
-        loglevel = 'INFO'
-        conf_file = "ta_risk_superhandler_settings"
-        confs = self.service.confs[str(conf_file)]
-        for stanza in confs:
-            if stanza.name == 'logging':
-                for stanzakey, stanzavalue in stanza.content.items():
-                    if stanzakey == "loglevel":
-                        loglevel = stanzavalue
-        logginglevel = logging.getLevelName(loglevel)
-        log.setLevel(logginglevel)
+        try:
+            loglevel = 'INFO'
+            conf_file = "ta_risk_superhandler_settings"
+            confs = self.service.confs[str(conf_file)]
+            for stanza in confs:
+                if stanza.name == 'logging':
+                    for stanzakey, stanzavalue in stanza.content.items():
+                        if stanzakey == "loglevel":
+                            loglevel = stanzavalue
+            logginglevel = logging.getLevelName(loglevel)
+            log.setLevel(logginglevel)
+        except Exception as e:
+            logging.warning("failed to retriieve application level logging with exception=\"{}\"".format(e))
 
         # To trace all attr
         #logging.debug("Trace all meta")
@@ -96,6 +105,9 @@ class RiskSuperHandler(StreamingCommand):
                                         namespace='TA-risk-superhandler', sessionKey=session_key, owner='-')
         mydict = entity
         splunkd_port = mydict['mgmtHostPort']
+
+        # get current user
+        username = self._metadata.searchinfo.username
 
         # Splunk header
         splunk_headers = {
@@ -497,6 +509,12 @@ class RiskSuperHandler(StreamingCommand):
                 if not k.startswith('__mv'):
                     new_record[k] = record[k]
 
+        # if this option is set
+        if self.uc_svc_account:
+            if username != self.uc_svc_account:
+                logging.info("The service account option was set to=\"{}\" and doesn't match the current user space=\"{}\", risk events will not be generated".format(self.uc_svc_account, username))
+                run_riskcollect = False
+
         # Shall we proceed
         if run_riskcollect:
 
@@ -521,14 +539,14 @@ class RiskSuperHandler(StreamingCommand):
             logging.debug("splQuery=\"{}\"".format(splQuery))
 
             # Run a search in Python
-            kwargs_search = {"app": "TA-risk-superhandler", "earliest_time": "-5m", "latest_time": "now"}
+            kwargs_search = {"app": "TA-risk-superhandler", "earliest_time": "-5m", "latest_time": "now", "output_mode": "json"}
 
             try:
 
                 # spawn the search and get the results
                 searchresults = service.jobs.oneshot(splQuery, **kwargs_search)
+                reader = results.JSONResultsReader(searchresults)
 
-                reader = results.ResultsReader(searchresults)
                 for item in reader:
                     query_result = item
                 logging.info("risk command was successful, result=\"{}\"".format(json.dumps(query_result, indent=0)))
