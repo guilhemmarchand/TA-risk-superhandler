@@ -151,7 +151,7 @@ Our final lookup referencial
 
 ::
 
-    risk_uc_ref,json_data
+    risk_uc_ref,json_dict
     edr-001,[{"search_name": "Threat - UC-EDR-001 - Rule"}, {"risk_object": "dest", "risk_object_type": "system", "risk_score": 10, "risk_message": "Security event detected on endpoint dest=$risk_object$"}, {"risk_object": "user", "risk_object_type": "user", "risk_score": 20, "risk_message": "Endpoint security event detected involving user=$risk_object$"}, {"threat_object_field": "process", "threat_object_type": "process"}, {"threat_object_field": "file_hash", "threat_object_type": "hash"}]
 
 **Complete the lookup with all Risk Rule correlation searches.**
@@ -341,6 +341,25 @@ This custom command is called ``risksuperhandler`` and behaves entirely as the m
    :class: with-border
 
 **Which leads to the exact same results in the Risk index, Datamodel and UI.**
+
+Additional options
+==================
+
+**The risksuperhandler custom command provides the following additional options compared to the modular alert:**
+
+uc_svc_account
+--------------
+
+You can use this option to avoid generating risks when the custom command is called unless the user running the command matches this value.
+
+For instamce:
+
+::
+
+    | risksuperhandler risk_super uc_lookup_path="SplunkEnterpriseSecuritySuite/lookups/risk.csv" uc_ref_field="risk_uc_ref" uc_svc_account="svc-siem"
+
+Will only generate risk events if the user username equals to "svc-siem", allowing to prevent the risk generation unless the use case is run by the proper user (a good practice is to re-assign correlation searches to a dedicated Splunk service account!)
+
 
 Multivalue and string delimited fields
 ######################################

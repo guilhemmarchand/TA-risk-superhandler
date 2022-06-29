@@ -443,14 +443,14 @@ def process_event(helper, *args, **kwargs):
         helper.log_debug("splQuery=\"{}\"".format(splQuery))
 
         # Run a search in Python
-        kwargs_search = {"app": "TA-risk-superhandler", "earliest_time": "-5m", "latest_time": "now"}
+        kwargs_search = {"app": "TA-risk-superhandler", "earliest_time": "-5m", "latest_time": "now", "output_mode": "json"}
 
         try:
 
             # spawn the search and get the results
             searchresults = service.jobs.oneshot(splQuery, **kwargs_search)
+            reader = results.JSONResultsReader(searchresults)
 
-            reader = results.ResultsReader(searchresults)
             for item in reader:
                 query_result = item
             helper.log_info("risk command was successful, result=\"{}\"".format(json.dumps(query_result, indent=0)))
