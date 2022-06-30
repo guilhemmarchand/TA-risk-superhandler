@@ -21,6 +21,7 @@ def process_event(helper, *args, **kwargs):
     import time
     import tempfile
     import requests
+    import re
     import os, sys
     import splunklib.client as client
     from splunklib.modularinput.event import Event, ET
@@ -47,10 +48,14 @@ def process_event(helper, *args, **kwargs):
     session_key = helper.session_key
     
     # Get splunkd port
-    entity = splunk.entity.getEntity('/server', 'settings',
-                                        namespace='TA-risk-superhandler', sessionKey=session_key, owner='-')
-    splunkd_port = entity['mgmtHostPort']
-    splunkd_host = entity['host']
+    try:
+        splunkd_port_search = re.search('\'server_uri\':\s\'(?:http|https)://[^\:]+\:(\d+)\'', str(vars(helper)), re.IGNORECASE)
+        if splunkd_port_search:
+            splunkd_port = splunkd_port_search.group(1)
+            helper.log_debug("splunkd_port=\"{}\" extracted successfully".format(splunkd_port))
+    except Exception as e:
+        helper.log_error("Failed to extract splunkd_port from server_uri with exception=\"{}\"".format(e))
+        splunkd_port = "8089"
 
     # Set header for request authentication
     header = 'Splunk ' + str(session_key)
