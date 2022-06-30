@@ -69,9 +69,14 @@ class JsonRestHandler(GeneratingCommand):
         session_key = self._metadata.searchinfo.session_key
 
         # Get splunkd port
-        entity = splunk.entity.getEntity('/server', 'settings',
-                                            namespace='TA-risk-superhandler', sessionKey=session_key, owner='-')
-        splunkd_port = entity['mgmtHostPort']
+        try:
+            splunkd_port_search = re.search(':(\d+)$', self._metadata.searchinfo.splunkd_uri, re.IGNORECASE)
+            if splunkd_port_search:
+                splunkd_port = splunkd_port_search.group(1)
+                logging.debug("splunkd_port=\"{}\" extracted successfully from splunkd_uri=\"{}\"".format(splunkd_port, self._metadata.searchinfo.splunkd_uri))
+        except Exception as e:
+            logging.error("Failed to extract splunkd_port from splunkd_uri with exception=\"{}\"".format(e))
+            splunkd_port = "8089"
 
         # temp
         f = open(self.json_path)

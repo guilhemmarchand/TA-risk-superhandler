@@ -1,6 +1,11 @@
 Release notes
 -------------
 
+Version 1.0.16
+==============
+
+- Enhancement: Avoid requiring the list_settings capabilty to run the modalert action or custom commands
+
 Version 1.0.15
 ==============
 
