@@ -343,12 +343,12 @@ This custom command is called ``risksuperhandler`` and behaves entirely as the m
 **Which leads to the exact same results in the Risk index, Datamodel and UI.**
 
 Additional options
-==================
+##################
 
 **The risksuperhandler custom command provides the following additional options compared to the modular alert:**
 
 uc_svc_account
---------------
+==============
 
 You can use this option to avoid generating risks when the custom command is called unless the user running the command matches this value.
 
@@ -362,10 +362,10 @@ Will only generate risk events if the user username equals to "svc-siem", allowi
 
 
 Multivalue and string delimited fields
-######################################
+======================================
 
 Single and Multivalue fields
-============================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **The risk objects value fields, as well as the threat object value fields can be:**
 
@@ -375,7 +375,7 @@ Single and Multivalue fields
 These will be treated transparently, and lead to the creation of risk events accordingly.
 
 Multivalue fields stored in a single value field using a delimiter
-==================================================================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Alternatively, you can define a risk object field that is stored in a string delimited format, for instance, let's assume that as part of the search results, the ``user`` field is like:
 
