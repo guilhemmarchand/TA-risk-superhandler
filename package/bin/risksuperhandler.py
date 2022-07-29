@@ -475,8 +475,12 @@ class RiskSuperHandler(StreamingCommand):
                                         risk_object_list = risk_object_mv_field
 
                                     # or via the seperator in single value string separated
-                                    elif format_separator:                            
-                                        risk_object_list = record[risk_object].split(format_separator)
+                                    elif format_separator:
+                                        try:
+                                            risk_object_list = record[risk_object].split(format_separator)
+                                        except Exception as e:
+                                            risk_object_list = record[risk_object]
+                                            logging.error("could not load the field=\"{}\" as a format separated field, the rule definition is likely incorrect, exception=\"{}\"".format(risk_object, str(e)))
 
                                     # stored in a native list
                                     else:
