@@ -1,6 +1,11 @@
 Release notes
 -------------
 
+Version 1.0.17
+==============
+
+- Enhancement: Handle an incorrect format separator definition provided for a field that is actually a multi-value field
+
 Version 1.0.16
 ==============
 
