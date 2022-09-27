@@ -480,7 +480,7 @@ class RiskSuperHandler(StreamingCommand):
                                             risk_object_list = record[risk_object].split(format_separator)
                                         except Exception as e:
                                             risk_object_list = record[risk_object]
-                                            logging.error("could not load the field=\"{}\" as a format separated field, the rule definition is likely incorrect, exception=\"{}\"".format(risk_object, str(e)))
+                                            logging.error("uc_ref=\"{}\", could not load the field=\"{}\" as a format separated field, the rule definition is likely incorrect, exception=\"{}\"".format(record[self.uc_ref_field], risk_object, str(e)))
 
                                     # stored in a native list
                                     else:

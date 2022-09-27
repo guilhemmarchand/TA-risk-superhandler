@@ -1,6 +1,11 @@
 Release notes
 -------------
 
+Version 1.0.18
+==============
+
+- Fix: Missing uc_ref mention in exception logs
+
 Version 1.0.17
 ==============
 
