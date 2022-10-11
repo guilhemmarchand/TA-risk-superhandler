@@ -311,7 +311,19 @@ class RiskSuperHandler(StreamingCommand):
                             threat_object_field = jsonSubObj['threat_object_field']
                             logging.debug("threat_object_field=\"{}\"".format(threat_object_field))
 
-                            # check if this is a list itself
+                            # The threat_object value can be provided in 3 options:
+                            # - as a single value
+                            # - in a mv structured (__mv_risk_object)
+                            # - in a native list
+                            # - in a pseudo mv structured to be expanded, via a string delimiter
+
+                            # Allow a field to be provided as part of an mv structure by submitting a delimiter, if no delimiter assume the field is a regular
+                            # single value
+                            try:
+                                format_separator_threat_object = jsonSubObj['format_separator']
+                                logging.debug("threat_object is specified as a potential multivalue field with a custom separator format_separator=\"{}\"".format(format_separator_threat_object))
+                            except Exception as e:
+                                format_separator_threat_object = None
 
                             # check an mv field exist for this
                             threat_object_mv_field = []
@@ -323,16 +335,39 @@ class RiskSuperHandler(StreamingCommand):
                                 logging.debug("threat_object_field was not found in a mv format, exception=\"{}\"".format(e))
 
                             # Handle all options
-                            if len(threat_object_mv_field)>0:
-                                for sub_threat_object in threat_object_mv_field:
-                                    threat_objects_list.append(sub_threat_object)                            
-                                
-                            elif type(record[threat_object_field]) == list:
-                                for sub_threat_object in record[threat_object_field]:
-                                    threat_objects_list.append(sub_threat_object)
+
+                            # check if it is a standard single value field
+                            if not format_separator_threat_object and len(threat_object_mv_field) == 0 and type(record[threat_object_field]) != list:
+
+                                # log
+                                logging.debug("the threat_object format is a single value field, threat_object=\"{}\"".format(record[threat_object_field]))
+
+                                # append to our list
+                                threat_objects_list.append(record[threat_object_field])
 
                             else:
-                                threat_objects_list.append(record[threat_object_field])
+
+                                logging.debug("the threat_object format is a multivalue format")
+
+                                # check if it is an mvfield
+                                if len(threat_object_mv_field)>0:
+                                    for sub_threat_object in threat_object_mv_field:
+                                        threat_objects_list.append(sub_threat_object)
+
+                                # check if it is a native list
+                                elif type(record[threat_object_field]) == list:
+                                    for sub_threat_object in record[threat_object_field]:
+                                        threat_objects_list.append(sub_threat_object)
+
+                                # check if a custom format delimiter is set set
+                                elif format_separator_threat_object:
+
+                                    try:
+                                        threat_objects_list = record[threat_object_field].split(format_separator_threat_object)
+                                        logging.debug("uc_ref=\"{}\", successfully loaded the threat_object field as a custom separated format using format_separator=\"{}\"".format(record[self.uc_ref_field], format_separator_threat_object))
+                                    except Exception as e:
+                                        threat_objects_list = record[threat_object_field]
+                                        logging.error("uc_ref=\"{}\", could not load the field=\"{}\" as a format separated field, the rule definition is likely incorrect, exception=\"{}\"".format(record[self.uc_ref_field], threat_object_field, str(e)))
 
                             # Add to the record
                             new_record['threat_object'] = threat_objects_list
@@ -478,6 +513,7 @@ class RiskSuperHandler(StreamingCommand):
                                     elif format_separator:
                                         try:
                                             risk_object_list = record[risk_object].split(format_separator)
+                                            logging.debug("uc_ref=\"{}\", successfully loaded the risk_object field as a custom separated format using format_separator=\"{}\"".format(record[self.uc_ref_field], format_separator))
                                         except Exception as e:
                                             risk_object_list = record[risk_object]
                                             logging.error("uc_ref=\"{}\", could not load the field=\"{}\" as a format separated field, the rule definition is likely incorrect, exception=\"{}\"".format(record[self.uc_ref_field], risk_object, str(e)))
@@ -524,6 +560,13 @@ class RiskSuperHandler(StreamingCommand):
                 logging.info("The service account option was set to=\"{}\" and doesn't match the current user space=\"{}\", risk events will not be generated".format(self.uc_svc_account, username))
                 run_riskcollect = False
 
+        # Additional safety: if none of the expected fields in the Risk definition could be found (the JSON definition is incorrect or the event unexpected)
+        # Don't run the rest of the logic
+
+        if not all_new_records:
+            logging.error("uc_ref=\"{}\", Not triggering any action, all risk objects failed to be extracted, please verify the event and the risk definition.".format(record[self.uc_ref_field]))
+            run_riskcollect = False
+
         # Shall we proceed
         if run_riskcollect:
 
@@ -534,6 +577,8 @@ class RiskSuperHandler(StreamingCommand):
             # Write our json record
             results_json.writelines(json.dumps(all_new_records))
             results_json.seek(0)
+
+            logging.debug("content of results_json=\"{}\"".format(all_new_records))
 
             #
             # Set and run a Splunk query using the Python SDK

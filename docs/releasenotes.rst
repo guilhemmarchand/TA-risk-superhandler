@@ -1,6 +1,12 @@
 Release notes
 -------------
 
+Version 1.0.19
+==============
+
+- Enhancement: Allows the threat_object to be specified as part of a custom multivalue field seprated by a specific delimitor
+- Enhancement: Avoid running the risk action if all risk objects failed to be extracted due to an incorrect risk definition or unexpected events results
+
 Version 1.0.18
 ==============
 
