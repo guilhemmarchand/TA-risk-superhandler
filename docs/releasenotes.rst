@@ -4,6 +4,7 @@ Release notes
 Version 1.0.19
 ==============
 
+- Enhancement: Allows the threat_object to be specified as part of a custom multivalue field seprated by a specific delimitor
 
 Version 1.0.18
 ==============

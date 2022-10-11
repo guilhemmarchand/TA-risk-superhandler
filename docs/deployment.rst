@@ -377,7 +377,7 @@ These will be treated transparently, and lead to the creation of risk events acc
 Multivalue fields stored in a single value field using a delimiter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Alternatively, you can define a risk object field that is stored in a string delimited format, for instance, let's assume that as part of the search results, the ``user`` field is like:
+Alternatively, you can define risk object fields and/or threat object fields to be stored in a string delimited format which get expanded as multivalue fields, for instance, let's assume that as part of the search results, the ``user`` field is like:
 
 ::
     
@@ -415,6 +415,12 @@ You can specify in the Risk definition rule, the special option ``format_separat
    :align: center
    :width: 1400px
    :class: with-border
+
+*The same can be achieved for threat objects, example:*
+
+::
+
+    {"threat_object": "file_name", "threat_object_type": "file", "format_separator": "|"}
 
 Troubleshoot
 ############
