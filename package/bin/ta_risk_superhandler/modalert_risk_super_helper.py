@@ -467,7 +467,7 @@ def process_event(helper, *args, **kwargs):
     # Don't run the rest of the logic
 
     if not all_new_records:
-        helper.log_error("uc_ref=\"{}\", Not triggering any action, all risk objects failed to be extracted, please verify the event and the risk definition.".format(record[uc_ref_field]))
+        helper.log_error("Not triggering any action, all risk objects failed to be extracted, please verify the event and the risk definition.")
         run_riskcollect = False
 
     # Shall we proceed

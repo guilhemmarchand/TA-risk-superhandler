@@ -564,7 +564,7 @@ class RiskSuperHandler(StreamingCommand):
         # Don't run the rest of the logic
 
         if not all_new_records:
-            logging.error("uc_ref=\"{}\", Not triggering any action, all risk objects failed to be extracted, please verify the event and the risk definition.".format(record[self.uc_ref_field]))
+            logging.error("Not triggering any action, all risk objects failed to be extracted, please verify the event and the risk definition.")
             run_riskcollect = False
 
         # Shall we proceed
