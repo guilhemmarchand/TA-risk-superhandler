@@ -1,6 +1,11 @@
 Release notes
 -------------
 
+Version 1.0.20
+==============
+
+- Enhancement: Avoid running the risk action if all risk objects failed to be extracted due to an incorrect risk definition or unexpected events results
+
 Version 1.0.19
 ==============
 
