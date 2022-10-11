@@ -560,6 +560,13 @@ class RiskSuperHandler(StreamingCommand):
                 logging.info("The service account option was set to=\"{}\" and doesn't match the current user space=\"{}\", risk events will not be generated".format(self.uc_svc_account, username))
                 run_riskcollect = False
 
+        # Additional safety: if none of the expected fields in the Risk definition could be found (the JSON definition is incorrect or the event unexpected)
+        # Don't run the rest of the logic
+
+        if not all_new_records:
+            logging.error("uc_ref=\"{}\", Not triggering any action, all risk objects failed to be extracted, please verify the event and the risk definition.".format(record[self.uc_ref_field]))
+            run_riskcollect = False
+
         # Shall we proceed
         if run_riskcollect:
 
@@ -570,6 +577,8 @@ class RiskSuperHandler(StreamingCommand):
             # Write our json record
             results_json.writelines(json.dumps(all_new_records))
             results_json.seek(0)
+
+            logging.debug("content of results_json=\"{}\"".format(all_new_records))
 
             #
             # Set and run a Splunk query using the Python SDK

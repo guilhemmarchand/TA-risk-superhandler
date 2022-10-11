@@ -463,6 +463,13 @@ def process_event(helper, *args, **kwargs):
             if not k.startswith('__mv'):
                 new_record[k] = record[k]
 
+    # Additional safety: if none of the expected fields in the Risk definition could be found (the JSON definition is incorrect or the event unexpected)
+    # Don't run the rest of the logic
+
+    if not all_new_records:
+        helper.log_error("uc_ref=\"{}\", Not triggering any action, all risk objects failed to be extracted, please verify the event and the risk definition.".format(record[uc_ref_field]))
+        run_riskcollect = False
+
     # Shall we proceed
     if run_riskcollect:
 
