@@ -4,6 +4,9 @@ Release notes
 Version 1.0.21
 ==============
 
+- Enhancement: Detect if a risk_object is incorrectly set with a field format separator while it is coming as a native list of items
+- Enhancement: Improve logging when none of the defined risk_object can be extracted from the upstream results
+
 Version 1.0.20
 ==============
 
