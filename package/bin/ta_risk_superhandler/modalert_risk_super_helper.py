@@ -338,6 +338,9 @@ def process_event(helper, *args, **kwargs):
                     # Loop if we have a JSON risk rule
                     if jsonSubObjHasRisk:
 
+                        # risk objects counter
+                        risk_objects_count = 0
+
                         # for each JSON rule, apply the risk - magic
                         risk_object = jsonSubObj['risk_object']
                         risk_object_type = jsonSubObj['risk_object_type']
@@ -384,9 +387,6 @@ def process_event(helper, *args, **kwargs):
                             #
                             # risk object
                             #
-
-                            # risk objects counter
-                            risk_objects_count = 0
 
                             # handle the format field
                             if not format_separator and len(risk_object_mv_field) == 0 and type(record[risk_object]) != list:
@@ -466,9 +466,9 @@ def process_event(helper, *args, **kwargs):
                                     # Add to final records
                                     all_new_records.append(mv_record)
 
-                                    # if we have not matched any risk_object as per the definition, generate an error message
-                                    if not risk_objects_count>0:
-                                        helper.log_error("uc_ref=\"{}\", none of the risk objects defined in the rule could be extracted from the results, please verify the event and the risk definition, record=\"{}\"".format(record))
+                        # if we have not matched any risk_object as per the definition, generate an error message
+                        if not risk_objects_count>0:
+                            helper.log_error("uc_ref=\"{}\", none of the risk objects defined in the rule could be extracted from the results, please verify the event and the risk definition, record=\"{}\"".format(record[uc_ref_field], record))
 
         # Initial exception handler
         except Exception as e:
