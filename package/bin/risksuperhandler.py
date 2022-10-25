@@ -530,7 +530,7 @@ class RiskSuperHandler(StreamingCommand):
 
                                         # if the format separator was incorrectly set, generate a warning message
                                         if format_separator:
-                                            logging.warn("uc_ref=\"{}\", the risk_object=\"{}\" has a format_separator=\"{}\" but it comes a multivalue field instead, this configuration is likely incorrect".format(record[self.uc_ref_field], risk_object, format_separator))
+                                            logging.warn("uc_ref=\"{}\", the risk_object=\"{}\" has a format_separator=\"{}\" but it comes as a multivalue field instead, this configuration is likely incorrect".format(record[self.uc_ref_field], risk_object, format_separator))
 
                                         # store
                                         risk_object_list = record[risk_object]
