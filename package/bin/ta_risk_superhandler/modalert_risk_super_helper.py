@@ -338,6 +338,9 @@ def process_event(helper, *args, **kwargs):
                     # Loop if we have a JSON risk rule
                     if jsonSubObjHasRisk:
 
+                        # risk objects counter
+                        risk_objects_count = 0
+
                         # for each JSON rule, apply the risk - magic
                         risk_object = jsonSubObj['risk_object']
                         risk_object_type = jsonSubObj['risk_object_type']
@@ -420,7 +423,7 @@ def process_event(helper, *args, **kwargs):
                                     risk_object_list = risk_object_mv_field
 
                                 # or via the seperator in single value string separated
-                                elif format_separator:
+                                elif format_separator and type(record[risk_object]) != list:
                                     try:
                                         risk_object_list = record[risk_object].split(format_separator)
                                     except Exception as e:
@@ -429,10 +432,19 @@ def process_event(helper, *args, **kwargs):
 
                                 # stored in a native list
                                 else:
+
+                                    # if the format separator was incorrectly set, generate a warning message
+                                    if format_separator:
+                                        helper.log_warning("uc_ref=\"{}\", the risk_object=\"{}\" has a format_separator=\"{}\" but it comes as a multivalue field instead, this configuration is likely incorrect".format(record[uc_ref_field], risk_object, format_separator))
+
+                                    # store
                                     risk_object_list = record[risk_object]
 
                                 for risk_subobject in risk_object_list:
                                     helper.log_debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
+
+                                    # increment
+                                    risk_objects_count+=1
 
                                     # Handle this mv structure in a new record
                                     mv_record = {}
@@ -454,6 +466,10 @@ def process_event(helper, *args, **kwargs):
                                     # Add to final records
                                     all_new_records.append(mv_record)
 
+                        # if we have not matched any risk_object as per the definition, generate an error message
+                        if not risk_objects_count>0:
+                            helper.log_error("uc_ref=\"{}\", none of the risk objects defined in the rule could be extracted from the results, please verify the event and the risk definition, record=\"{}\"".format(record[uc_ref_field], record))
+
         # Initial exception handler
         except Exception as e:
             helper.log_error("An exception was encountered while processing the risk actions, exception=\"{}\"".format(e))
@@ -467,7 +483,7 @@ def process_event(helper, *args, **kwargs):
     # Don't run the rest of the logic
 
     if not all_new_records:
-        helper.log_error("Not triggering any action, all risk objects failed to be extracted, please verify the event and the risk definition.")
+        helper.log_debug("Not triggering any action, all risk objects failed to be extracted, please verify the event and the risk definition.")
         run_riskcollect = False
 
     # Shall we proceed

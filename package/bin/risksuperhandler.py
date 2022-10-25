@@ -359,7 +359,7 @@ class RiskSuperHandler(StreamingCommand):
                                     for sub_threat_object in record[threat_object_field]:
                                         threat_objects_list.append(sub_threat_object)
 
-                                # check if a custom format delimiter is set set
+                                # check if a custom format delimiter is set
                                 elif format_separator_threat_object:
 
                                     try:
@@ -419,6 +419,9 @@ class RiskSuperHandler(StreamingCommand):
                         # Loop if we have a JSON risk rule
                         if jsonSubObjHasRisk:
 
+                            # risk objects counter
+                            risk_objects_count = 0
+
                             # for each JSON rule, apply the risk - magic
                             risk_object = jsonSubObj['risk_object']
                             risk_object_type = jsonSubObj['risk_object_type']
@@ -472,6 +475,9 @@ class RiskSuperHandler(StreamingCommand):
                                     # log
                                     logging.debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
 
+                                    # increment
+                                    risk_objects_count+=1
+
                                     # Add
                                     new_record['risk_object'] = record[risk_object]
                                     new_record['risk_object_type'] = risk_object_type
@@ -509,21 +515,31 @@ class RiskSuperHandler(StreamingCommand):
                                     if len(risk_object_mv_field) > 0:
                                         risk_object_list = risk_object_mv_field
 
-                                    # or via the seperator in single value string separated
-                                    elif format_separator:
+                                    # or via the separator in single value string separated
+                                    elif format_separator and type(record[risk_object]) != list:
                                         try:
                                             risk_object_list = record[risk_object].split(format_separator)
                                             logging.debug("uc_ref=\"{}\", successfully loaded the risk_object field as a custom separated format using format_separator=\"{}\"".format(record[self.uc_ref_field], format_separator))
+
                                         except Exception as e:
                                             risk_object_list = record[risk_object]
                                             logging.error("uc_ref=\"{}\", could not load the field=\"{}\" as a format separated field, the rule definition is likely incorrect, exception=\"{}\"".format(record[self.uc_ref_field], risk_object, str(e)))
 
                                     # stored in a native list
                                     else:
+
+                                        # if the format separator was incorrectly set, generate a warning message
+                                        if format_separator:
+                                            logging.warn("uc_ref=\"{}\", the risk_object=\"{}\" has a format_separator=\"{}\" but it comes as a multivalue field instead, this configuration is likely incorrect".format(record[self.uc_ref_field], risk_object, format_separator))
+
+                                        # store
                                         risk_object_list = record[risk_object]
 
                                     for risk_subobject in risk_object_list:
                                         logging.debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
+
+                                        # increment
+                                        risk_objects_count+=1
 
                                         # Handle this mv structure in a new record
                                         mv_record = {}
@@ -545,6 +561,10 @@ class RiskSuperHandler(StreamingCommand):
                                         # Add to final records
                                         all_new_records.append(mv_record)
 
+                            # if we have not matched any risk_object as per the definition, generate an error message
+                            if not risk_objects_count>0:
+                                logging.error("uc_ref=\"{}\", none of the risk objects defined in the rule could be extracted from the results, please verify the event and the risk definition, record=\"{}\"".format(record[self.uc_ref_field], record))
+
             # Initial exception handler
             except Exception as e:
                 logging.error("An exception was encountered while processing the risk actions, exception=\"{}\"".format(e))
@@ -564,7 +584,7 @@ class RiskSuperHandler(StreamingCommand):
         # Don't run the rest of the logic
 
         if not all_new_records:
-            logging.error("Not triggering any action, all risk objects failed to be extracted, please verify the event and the risk definition.")
+            logging.debug("Not triggering any action, all risk objects failed to be extracted, please verify the event and the risk definition.")
             run_riskcollect = False
 
         # Shall we proceed
