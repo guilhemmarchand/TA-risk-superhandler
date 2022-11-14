@@ -146,6 +146,9 @@ class RiskSuperHandler(StreamingCommand):
         # boolean used to define if the final action should be executed
         run_riskcollect = False
 
+        # boolean used to define if we shall start the risk process
+        start_riskprocess = False
+
         # Write to a tempfile
         # Get tempdir
         tempdir = os.path.join(splunkhome, 'etc', 'apps', 'TA-risk-superhandler', 'tmp')
@@ -221,12 +224,14 @@ class RiskSuperHandler(StreamingCommand):
                 try:       
                     uc_ref = record[self.uc_ref_field]
                     logging.debug("uc_ref=\"{}\"".format(uc_ref))
+                    start_riskprocess = True
+
                 except Exception as e:
                     logging.error("failed to retrieve the uc_ref using requested field=\"{}\" from the upstream results, record=\"{}\"".format(self.uc_ref_field, json.dumps(record)))
-                    run_riskcollect = False
+                    start_riskprocess = False
 
                 # only continue from here if the condition was satisfied
-                if run_riskcollect:
+                if start_riskprocess:
 
                     ####################        
                     # Get the JSON dict

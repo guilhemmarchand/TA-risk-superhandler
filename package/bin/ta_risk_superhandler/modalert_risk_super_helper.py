@@ -96,6 +96,9 @@ def process_event(helper, *args, **kwargs):
     # boolean used to define if the final action should be executed
     run_riskcollect = False
 
+    # boolean used to define if we shall start the risk process
+    start_riskprocess = False
+
     # Write to a tempfile
     # Get tempdir
     tempdir = os.path.join(splunkhome, 'etc', 'apps', 'TA-risk-superhandler', 'tmp')
@@ -138,12 +141,13 @@ def process_event(helper, *args, **kwargs):
             try:       
                 uc_ref = record[uc_ref_field]
                 helper.log_debug("uc_ref=\"{}\"".format(uc_ref))
+                start_riskprocess = True
             except Exception as e:
                 helper.log_error("failed to retrieve the uc_ref using requested field=\"{}\" from the upstream results".format(uc_ref_field, json.dumps(record)))
-                run_riskcollect = False
+                start_riskprocess = False
 
             # only continue from here if the condition was satisfied
-            if run_riskcollect:
+            if start_riskprocess:
 
                 ####################        
                 # Get the JSON dict
