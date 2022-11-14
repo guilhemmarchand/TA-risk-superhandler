@@ -96,6 +96,9 @@ def process_event(helper, *args, **kwargs):
     # boolean used to define if the final action should be executed
     run_riskcollect = False
 
+    # boolean used to define if we shall start the risk process
+    start_riskprocess = False
+
     # Write to a tempfile
     # Get tempdir
     tempdir = os.path.join(splunkhome, 'etc', 'apps', 'TA-risk-superhandler', 'tmp')
@@ -138,322 +141,274 @@ def process_event(helper, *args, **kwargs):
             try:       
                 uc_ref = record[uc_ref_field]
                 helper.log_debug("uc_ref=\"{}\"".format(uc_ref))
+                start_riskprocess = True
             except Exception as e:
-                helper.log_error("failed to retrieve the uc_ref from the upstream results")
-                run_riskcollect = False
+                helper.log_error("failed to retrieve the uc_ref using requested field=\"{}\" from the upstream results".format(uc_ref_field, json.dumps(record)))
+                start_riskprocess = False
 
-            ####################        
-            # Get the JSON dict
-            ####################
+            # only continue from here if the condition was satisfied
+            if start_riskprocess:
 
-            # Start     
-            jsonDict = None
-            jsonObj = None
+                ####################        
+                # Get the JSON dict
+                ####################
 
-            # This dict will be used to be provided to the risk command
-            jsonEmptyDict = []
+                # Start     
+                jsonDict = None
+                jsonObj = None
 
-            if uc_lookup_path:
+                # This dict will be used to be provided to the risk command
+                jsonEmptyDict = []
 
-                # Open the csv lookup
-                csv_file = open(csv_dict_file, "r")
-                readCSV = csv.DictReader(csv_file, delimiter=str(u','), quotechar=str(u'"'))
+                if uc_lookup_path:
 
-                # log
-                helper.log_debug("csv_data=\"{}\"".format(readCSV))
-
-                # Loop
-                for row in readCSV:
+                    # Open the csv lookup
+                    csv_file = open(csv_dict_file, "r")
+                    readCSV = csv.DictReader(csv_file, delimiter=str(u','), quotechar=str(u'"'))
 
                     # log
-                    helper.log_debug("In lookup row=\"{}\"".format(row))
-                    helper.log_debug("In lookup looking for match with ref=\"{}\"".format(record[uc_ref_field]))
-                    helper.log_debug("In lookup content uc_ref_field=\"{}\"".format(row[uc_ref_field]))
-                    helper.log_debug("In lookup content json_dict=\"{}\"".format(row['json_dict']))
-                    helper.log_debug("if {} is equal to {}".format(row[uc_ref_field], record[uc_ref_field]))
+                    helper.log_debug("csv_data=\"{}\"".format(readCSV))
 
-                    if row[uc_ref_field] == record[uc_ref_field]:
-                        helper.log_info("uc_ref=\"{}\", use case lookup record found, row=\"{}\"".format(record[uc_ref_field], json.dumps(row)))
-                        jsonDict = row['json_dict']
-                        run_riskcollect = True
-                        break
+                    # Loop
+                    for row in readCSV:
 
-            # process if we have a JSON rule object
-            if not jsonDict:
-                helper.log_info("No lookup record match for use case uc_ref=\"{}\", risk event creation will not be actioned".format(record[uc_ref_field]))
-                run_riskcollect = False
+                        # log
+                        helper.log_debug("In lookup row=\"{}\"".format(row))
+                        helper.log_debug("In lookup looking for match with ref=\"{}\"".format(record[uc_ref_field]))
+                        helper.log_debug("In lookup content uc_ref_field=\"{}\"".format(row[uc_ref_field]))
+                        helper.log_debug("In lookup content json_dict=\"{}\"".format(row['json_dict']))
+                        helper.log_debug("if {} is equal to {}".format(row[uc_ref_field], record[uc_ref_field]))
 
-            else:
-                # Attempt to load the json dict as a Python object
-                try:
-                    jsonObj = json.loads(jsonDict)
-                    helper.log_info("record match for use case uc_ref=\"{}\", risk_rules were loaded successfully, jsonObj=\"{}\"".format(record[uc_ref_field], json.dumps(jsonObj)))
-                except Exception as e:
-                    helper.log_error("Failure to load the json object, use case uc_ref=\"{}\", exception=\"{}\"".format(record[uc_ref_field], e))
+                        if row[uc_ref_field] == record[uc_ref_field]:
+                            helper.log_info("uc_ref=\"{}\", use case lookup record found, row=\"{}\"".format(record[uc_ref_field], json.dumps(row)))
+                            jsonDict = row['json_dict']
+                            run_riskcollect = True
+                            break
+
+                # process if we have a JSON rule object
+                if not jsonDict:
+                    helper.log_info("No lookup record match for use case uc_ref=\"{}\", risk event creation will not be actioned".format(record[uc_ref_field]))
                     run_riskcollect = False
 
-                # Load each JSON within the JSON array
-                # Add the very beginning of our pseudo event
-
-                # Allow the search_name to be set as part the JSON object
-                # If this is the case, this will override the previously set search_name value
-                json_search_name = None
-                for jsonSubObj in jsonObj:
+                else:
+                    # Attempt to load the json dict as a Python object
                     try:
-                        json_search_name = jsonSubObj['search_name']
+                        jsonObj = json.loads(jsonDict)
+                        helper.log_info("record match for use case uc_ref=\"{}\", risk_rules were loaded successfully, jsonObj=\"{}\"".format(record[uc_ref_field], json.dumps(jsonObj)))
                     except Exception as e:
-                        helper.log_debug("No search_name was provided in the JSON object")
+                        helper.log_error("Failure to load the json object, use case uc_ref=\"{}\", exception=\"{}\"".format(record[uc_ref_field], e))
+                        run_riskcollect = False
 
-                # Hande the threat, will be added to the JSON object submitted in the risk param
+                    # Load each JSON within the JSON array
+                    # Add the very beginning of our pseudo event
 
-                # Store type of object in a list
-                threat_objects_list = []
-                threat_objects_type_list = []
+                    # Allow the search_name to be set as part the JSON object
+                    # If this is the case, this will override the previously set search_name value
+                    json_search_name = None
+                    for jsonSubObj in jsonObj:
+                        try:
+                            json_search_name = jsonSubObj['search_name']
+                        except Exception as e:
+                            helper.log_debug("No search_name was provided in the JSON object")
 
-                for jsonSubObj in jsonObj:
-                    json_risk_object = None
-                    json_threat_object = None
+                    # Hande the threat, will be added to the JSON object submitted in the risk param
 
-                    try:
-                        risk_object = jsonSubObj['risk_object']
-                        risk_object_type = jsonSubObj['risk_object_type']
-                        risk_score = jsonSubObj['risk_score']
-                        risk_message = jsonSubObj['risk_message']
-                        json_risk_object = True
-                    except Exception as e:
-                        helper.log_debug("No risk object in jsonSubObj=\"{}\"".format(jsonSubObj))
+                    # Store type of object in a list
+                    threat_objects_list = []
+                    threat_objects_type_list = []
+
+                    for jsonSubObj in jsonObj:
                         json_risk_object = None
-
-                    try:
-
-                        # Handle threat_object_field
-                        threat_object_field = jsonSubObj['threat_object_field']
-                        helper.log_debug("threat_object_field=\"{}\"".format(threat_object_field))
-
-                        # The threat_object value can be provided in 3 options:
-                        # - as a single value
-                        # - in a mv structured (__mv_risk_object)
-                        # - in a native list
-                        # - in a pseudo mv structured to be expanded, via a string delimiter
-
-                        # Allow a field to be provided as part of an mv structure by submitting a delimiter, if no delimiter assume the field is a regular
-                        # single value
-                        try:
-                            format_separator_threat_object = jsonSubObj['format_separator']
-                            helper.log_debug("threat_object is specified as a potential multivalue field with a custom separator format_separator=\"{}\"".format(format_separator_threat_object))
-                        except Exception as e:
-                            format_separator_threat_object = None
-
-                        # check an mv field exist for this
-                        threat_object_mv_field = []
-                        try:
-                            threat_object_mv_field = cim_actions.parse_mv(record["__mv_" + str(threat_object_field)])                       
-                            helper.log_debug("threat_object is an mv field, threat_object_mv_field=\"{}\"".format(threat_object_mv_field))
-
-                        except Exception as e:
-                            helper.log_debug("threat_object_field was not found in a mv format, exception=\"{}\"".format(e))
-
-                        # Handle all options
-
-                        # check if it is a standard single value field
-                        if not format_separator_threat_object and len(threat_object_mv_field) == 0 and type(record[threat_object_field]) != list:
-
-                            # log
-                            helper.log_debug("the threat_object format is a single value field, threat_object=\"{}\"".format(record[threat_object_field]))
-
-                            # append to our list
-                            threat_objects_list.append(record[threat_object_field])
-
-                        else:
-
-                            helper.log_debug("the threat_object format is a multivalue format")
-
-                            # check if it is an mvfield
-                            if len(threat_object_mv_field)>0:
-                                for sub_threat_object in threat_object_mv_field:
-                                    threat_objects_list.append(sub_threat_object)
-
-                            # check if it is a native list
-                            elif type(record[threat_object_field]) == list:
-                                for sub_threat_object in record[threat_object_field]:
-                                    threat_objects_list.append(sub_threat_object)
-
-                            # check if a custom format delimiter is set set
-                            elif format_separator_threat_object:
-
-                                try:
-                                    threat_objects_list = record[threat_object_field].split(format_separator_threat_object)
-                                    helper.log_debug("uc_ref=\"{}\", successfully loaded the threat_object field as a custom separated format using format_separator=\"{}\"".format(record[uc_ref_field], format_separator_threat_object))
-                                except Exception as e:
-                                    threat_objects_list = record[threat_object_field]
-                                    helper.log_debug("uc_ref=\"{}\", could not load the field=\"{}\" as a format separated field, the rule definition is likely incorrect, exception=\"{}\"".format(record[uc_ref_field], threat_object_field, str(e)))
-
-                        # Add to the record
-                        new_record['threat_object'] = threat_objects_list
-
-                        # Handle threat_object_type
-                        threat_object_type = jsonSubObj['threat_object_type']
-                        helper.log_debug("threat_object_type=\"{}\"".format(threat_object_type))
-                        threat_objects_type_list.append(threat_object_type)
-                        helper.log_debug("threat_objects_type_list=\"{}\"".format(threat_objects_type_list))
-
-                        # Add
-                        new_record['threat_object_type'] = threat_objects_type_list
-
-                        # Boolean
-                        json_threat_object = True
-
-                    except Exception as e:
-                        helper.log_debug("No threat object in jsonSubObj=\"{}\"".format(jsonSubObj))
                         json_threat_object = None
 
-                    # Add
-                    if json_risk_object:
-                        jsonEmptyDict.append({'risk_object_field': risk_object, 'risk_object_type': risk_object_type, 'risk_score': risk_score, 'risk_message': risk_message})
-                    elif json_threat_object:
-                        jsonEmptyDict.append({'threat_object_field': threat_object_field, 'threat_object_type': threat_object_type})
-
-                # log debug
-                helper.log_debug("jsonEmptyDict=\"{}\"".format(json.dumps(jsonEmptyDict)))
-
-                # override if any
-                if json_search_name:
-                    search_name = json_search_name
-                    helper.log_debug("search_name was overriden via the JSON dictionnary, search_name=\"{}\"".format(search_name))
-
-                # Lookup through the dict again and proceed
-                for jsonSubObj in jsonObj:
-                    helper.log_debug("jsonSubObj=\"{}\"".format(json.dumps(jsonSubObj, indent=1)))
-
-                    # Handle if the JSON object contains a risk rule
-                    jsonSubObjHasRisk = None
-
-                    try:
-                        risk_object = jsonSubObj['risk_object']
-                        jsonSubObjHasRisk = True
-                    except Exception as e:
-                        jsonSubObjHasRisk = None
-                        helper.log_debug("jsonSubObj=\"{}\" does not include a risk JSON dictionnary".format(json.dumps(jsonSubObj, indent=1)))
-
-                    # Loop if we have a JSON risk rule
-                    if jsonSubObjHasRisk:
-
-                        # risk objects counter
-                        risk_objects_count = 0
-
-                        # for each JSON rule, apply the risk - magic
-                        risk_object = jsonSubObj['risk_object']
-                        risk_object_type = jsonSubObj['risk_object_type']
-                        risk_score = jsonSubObj['risk_score']
-                        risk_message = jsonSubObj['risk_message']
-
-                        # Verify that the risk_object field exists, and proceed
-                        risk_object_value = None
                         try:
-                            risk_object_value = record[risk_object]
+                            risk_object = jsonSubObj['risk_object']
+                            risk_object_type = jsonSubObj['risk_object_type']
+                            risk_score = jsonSubObj['risk_score']
+                            risk_message = jsonSubObj['risk_message']
+                            json_risk_object = True
                         except Exception as e:
-                            helper.log_error("uc_ref=\"{}\", cannot extract the risk_object=\"{}\", the field does not exist and will be ignored, record=\"{}\"".format(record[uc_ref_field], risk_object, json.dumps(record)))
+                            helper.log_debug("No risk object in jsonSubObj=\"{}\"".format(jsonSubObj))
+                            json_risk_object = None
 
-                        if risk_object_value:
+                        try:
 
-                            # Allow a field to be provided as part of an mv structure by submitting a delimiter, if no delimiter assume the field is a regular
-                            # single value
-                            try:
-                                format_separator = jsonSubObj['format_separator']
-                            except Exception as e:
-                                format_separator = None
+                            # Handle threat_object_field
+                            threat_object_field = jsonSubObj['threat_object_field']
+                            helper.log_debug("threat_object_field=\"{}\"".format(threat_object_field))
 
-                            # log
-                            helper.log_info("risk rule loaded, uc_ref=\"{}\", risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\", risk_message=\"{}\", format_field=\"{}\"".format(record[uc_ref_field], risk_object, risk_object_type, risk_score, risk_message, format_separator))
-
-                            # Execute a single search for optimisation purposes
-
-                            # The risk_object value can be provided in 3 options:
+                            # The threat_object value can be provided in 3 options:
                             # - as a single value
                             # - in a mv structured (__mv_risk_object)
                             # - in a native list
                             # - in a pseudo mv structured to be expanded, via a string delimiter
 
-                            # check an mv field exist for this
-                            risk_object_mv_field = []
+                            # Allow a field to be provided as part of an mv structure by submitting a delimiter, if no delimiter assume the field is a regular
+                            # single value
                             try:
-                                risk_object_mv_field = cim_actions.parse_mv(record["__mv_" + str(risk_object)])                       
-                                helper.log_debug("risk_object is an mv field, risk_object_mv_field=\"{}\"".format(risk_object_mv_field))
+                                format_separator_threat_object = jsonSubObj['format_separator']
+                                helper.log_debug("threat_object is specified as a potential multivalue field with a custom separator format_separator=\"{}\"".format(format_separator_threat_object))
+                            except Exception as e:
+                                format_separator_threat_object = None
+
+                            # check an mv field exist for this
+                            threat_object_mv_field = []
+                            try:
+                                threat_object_mv_field = cim_actions.parse_mv(record["__mv_" + str(threat_object_field)])                       
+                                helper.log_debug("threat_object is an mv field, threat_object_mv_field=\"{}\"".format(threat_object_mv_field))
 
                             except Exception as e:
-                                helper.log_debug("risk_object was not found in a mv format, exception=\"{}\"".format(e))
+                                helper.log_debug("threat_object_field was not found in a mv format, exception=\"{}\"".format(e))
 
+                            # Handle all options
 
-                            #
-                            # risk object
-                            #
-
-                            # handle the format field
-                            if not format_separator and len(risk_object_mv_field) == 0 and type(record[risk_object]) != list:
+                            # check if it is a standard single value field
+                            if not format_separator_threat_object and len(threat_object_mv_field) == 0 and type(record[threat_object_field]) != list:
 
                                 # log
-                                helper.log_debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
+                                helper.log_debug("the threat_object format is a single value field, threat_object=\"{}\"".format(record[threat_object_field]))
 
-                                # Handle this mv structure in a new record
-                                mv_record = {}
-                                for k in new_record:
-                                    mv_record[k] = new_record[k]
-                                helper.log_debug("mv_record=\"{}\"".format(mv_record))
-
-                                # Add
-                                mv_record['risk_object'] = record[risk_object]
-                                mv_record['risk_object_type'] = risk_object_type
-                                mv_record['risk_score'] = risk_score
-                                mv_record['risk_message'] = risk_message
-
-                                # Add original fields
-                                for k in record:
-                                    if not k.startswith('__mv'):
-                                        mv_record[k] = record[k]
-
-                                # Add to final records
-                                all_new_records.append(mv_record)
+                                # append to our list
+                                threat_objects_list.append(record[threat_object_field])
 
                             else:
 
-                                helper.log_debug("the risk object format is a multivalue format")
-                                
-                                # if from an __mv_risk_object field
-                                if len(risk_object_mv_field) > 0:
-                                    risk_object_list = risk_object_mv_field
+                                helper.log_debug("the threat_object format is a multivalue format")
 
-                                # or via the seperator in single value string separated
-                                elif format_separator and type(record[risk_object]) != list:
+                                # check if it is an mvfield
+                                if len(threat_object_mv_field)>0:
+                                    for sub_threat_object in threat_object_mv_field:
+                                        threat_objects_list.append(sub_threat_object)
+
+                                # check if it is a native list
+                                elif type(record[threat_object_field]) == list:
+                                    for sub_threat_object in record[threat_object_field]:
+                                        threat_objects_list.append(sub_threat_object)
+
+                                # check if a custom format delimiter is set set
+                                elif format_separator_threat_object:
+
                                     try:
-                                        risk_object_list = record[risk_object].split(format_separator)
+                                        threat_objects_list = record[threat_object_field].split(format_separator_threat_object)
+                                        helper.log_debug("uc_ref=\"{}\", successfully loaded the threat_object field as a custom separated format using format_separator=\"{}\"".format(record[uc_ref_field], format_separator_threat_object))
                                     except Exception as e:
-                                        risk_object_list = record[risk_object]
-                                        helper.log_warning("uc_ref=\"{}\", could not load the field=\"{}\" as a format separated field, the rule definition is likely incorrect, exception=\"{}\"".format(record[uc_ref_field], risk_object, str(e)))
+                                        threat_objects_list = record[threat_object_field]
+                                        helper.log_debug("uc_ref=\"{}\", could not load the field=\"{}\" as a format separated field, the rule definition is likely incorrect, exception=\"{}\"".format(record[uc_ref_field], threat_object_field, str(e)))
 
-                                # stored in a native list
-                                else:
+                            # Add to the record
+                            new_record['threat_object'] = threat_objects_list
 
-                                    # if the format separator was incorrectly set, generate a warning message
-                                    if format_separator:
-                                        helper.log_warning("uc_ref=\"{}\", the risk_object=\"{}\" has a format_separator=\"{}\" but it comes as a multivalue field instead, this configuration is likely incorrect".format(record[uc_ref_field], risk_object, format_separator))
+                            # Handle threat_object_type
+                            threat_object_type = jsonSubObj['threat_object_type']
+                            helper.log_debug("threat_object_type=\"{}\"".format(threat_object_type))
+                            threat_objects_type_list.append(threat_object_type)
+                            helper.log_debug("threat_objects_type_list=\"{}\"".format(threat_objects_type_list))
 
-                                    # store
-                                    risk_object_list = record[risk_object]
+                            # Add
+                            new_record['threat_object_type'] = threat_objects_type_list
 
-                                for risk_subobject in risk_object_list:
-                                    helper.log_debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
+                            # Boolean
+                            json_threat_object = True
 
-                                    # increment
-                                    risk_objects_count+=1
+                        except Exception as e:
+                            helper.log_debug("No threat object in jsonSubObj=\"{}\"".format(jsonSubObj))
+                            json_threat_object = None
+
+                        # Add
+                        if json_risk_object:
+                            jsonEmptyDict.append({'risk_object_field': risk_object, 'risk_object_type': risk_object_type, 'risk_score': risk_score, 'risk_message': risk_message})
+                        elif json_threat_object:
+                            jsonEmptyDict.append({'threat_object_field': threat_object_field, 'threat_object_type': threat_object_type})
+
+                    # log debug
+                    helper.log_debug("jsonEmptyDict=\"{}\"".format(json.dumps(jsonEmptyDict)))
+
+                    # override if any
+                    if json_search_name:
+                        search_name = json_search_name
+                        helper.log_debug("search_name was overriden via the JSON dictionnary, search_name=\"{}\"".format(search_name))
+
+                    # Lookup through the dict again and proceed
+                    for jsonSubObj in jsonObj:
+                        helper.log_debug("jsonSubObj=\"{}\"".format(json.dumps(jsonSubObj, indent=1)))
+
+                        # Handle if the JSON object contains a risk rule
+                        jsonSubObjHasRisk = None
+
+                        try:
+                            risk_object = jsonSubObj['risk_object']
+                            jsonSubObjHasRisk = True
+                        except Exception as e:
+                            jsonSubObjHasRisk = None
+                            helper.log_debug("jsonSubObj=\"{}\" does not include a risk JSON dictionnary".format(json.dumps(jsonSubObj, indent=1)))
+
+                        # Loop if we have a JSON risk rule
+                        if jsonSubObjHasRisk:
+
+                            # risk objects counter
+                            risk_objects_count = 0
+
+                            # for each JSON rule, apply the risk - magic
+                            risk_object = jsonSubObj['risk_object']
+                            risk_object_type = jsonSubObj['risk_object_type']
+                            risk_score = jsonSubObj['risk_score']
+                            risk_message = jsonSubObj['risk_message']
+
+                            # Verify that the risk_object field exists, and proceed
+                            risk_object_value = None
+                            try:
+                                risk_object_value = record[risk_object]
+                            except Exception as e:
+                                helper.log_error("uc_ref=\"{}\", cannot extract the risk_object=\"{}\", the field does not exist and will be ignored, record=\"{}\"".format(record[uc_ref_field], risk_object, json.dumps(record)))
+
+                            if risk_object_value:
+
+                                # Allow a field to be provided as part of an mv structure by submitting a delimiter, if no delimiter assume the field is a regular
+                                # single value
+                                try:
+                                    format_separator = jsonSubObj['format_separator']
+                                except Exception as e:
+                                    format_separator = None
+
+                                # log
+                                helper.log_info("risk rule loaded, uc_ref=\"{}\", risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\", risk_message=\"{}\", format_field=\"{}\"".format(record[uc_ref_field], risk_object, risk_object_type, risk_score, risk_message, format_separator))
+
+                                # Execute a single search for optimisation purposes
+
+                                # The risk_object value can be provided in 3 options:
+                                # - as a single value
+                                # - in a mv structured (__mv_risk_object)
+                                # - in a native list
+                                # - in a pseudo mv structured to be expanded, via a string delimiter
+
+                                # check an mv field exist for this
+                                risk_object_mv_field = []
+                                try:
+                                    risk_object_mv_field = cim_actions.parse_mv(record["__mv_" + str(risk_object)])                       
+                                    helper.log_debug("risk_object is an mv field, risk_object_mv_field=\"{}\"".format(risk_object_mv_field))
+
+                                except Exception as e:
+                                    helper.log_debug("risk_object was not found in a mv format, exception=\"{}\"".format(e))
+
+
+                                #
+                                # risk object
+                                #
+
+                                # handle the format field
+                                if not format_separator and len(risk_object_mv_field) == 0 and type(record[risk_object]) != list:
+
+                                    # log
+                                    helper.log_debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
 
                                     # Handle this mv structure in a new record
                                     mv_record = {}
                                     for k in new_record:
-                                        mv_record[k] = new_record[k]                                    
+                                        mv_record[k] = new_record[k]
                                     helper.log_debug("mv_record=\"{}\"".format(mv_record))
 
                                     # Add
-                                    mv_record['risk_object'] = risk_subobject
+                                    mv_record['risk_object'] = record[risk_object]
                                     mv_record['risk_object_type'] = risk_object_type
                                     mv_record['risk_score'] = risk_score
                                     mv_record['risk_message'] = risk_message
@@ -466,9 +421,61 @@ def process_event(helper, *args, **kwargs):
                                     # Add to final records
                                     all_new_records.append(mv_record)
 
-                        # if we have not matched any risk_object as per the definition, generate an error message
-                        if not risk_objects_count>0:
-                            helper.log_error("uc_ref=\"{}\", none of the risk objects defined in the rule could be extracted from the results, please verify the event and the risk definition, record=\"{}\"".format(record[uc_ref_field], record))
+                                else:
+
+                                    helper.log_debug("the risk object format is a multivalue format")
+                                    
+                                    # if from an __mv_risk_object field
+                                    if len(risk_object_mv_field) > 0:
+                                        risk_object_list = risk_object_mv_field
+
+                                    # or via the seperator in single value string separated
+                                    elif format_separator and type(record[risk_object]) != list:
+                                        try:
+                                            risk_object_list = record[risk_object].split(format_separator)
+                                        except Exception as e:
+                                            risk_object_list = record[risk_object]
+                                            helper.log_warning("uc_ref=\"{}\", could not load the field=\"{}\" as a format separated field, the rule definition is likely incorrect, exception=\"{}\"".format(record[uc_ref_field], risk_object, str(e)))
+
+                                    # stored in a native list
+                                    else:
+
+                                        # if the format separator was incorrectly set, generate a warning message
+                                        if format_separator:
+                                            helper.log_warning("uc_ref=\"{}\", the risk_object=\"{}\" has a format_separator=\"{}\" but it comes as a multivalue field instead, this configuration is likely incorrect".format(record[uc_ref_field], risk_object, format_separator))
+
+                                        # store
+                                        risk_object_list = record[risk_object]
+
+                                    for risk_subobject in risk_object_list:
+                                        helper.log_debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
+
+                                        # increment
+                                        risk_objects_count+=1
+
+                                        # Handle this mv structure in a new record
+                                        mv_record = {}
+                                        for k in new_record:
+                                            mv_record[k] = new_record[k]                                    
+                                        helper.log_debug("mv_record=\"{}\"".format(mv_record))
+
+                                        # Add
+                                        mv_record['risk_object'] = risk_subobject
+                                        mv_record['risk_object_type'] = risk_object_type
+                                        mv_record['risk_score'] = risk_score
+                                        mv_record['risk_message'] = risk_message
+
+                                        # Add original fields
+                                        for k in record:
+                                            if not k.startswith('__mv'):
+                                                mv_record[k] = record[k]
+
+                                        # Add to final records
+                                        all_new_records.append(mv_record)
+
+                            # if we have not matched any risk_object as per the definition, generate an error message
+                            if not risk_objects_count>0:
+                                helper.log_error("uc_ref=\"{}\", none of the risk objects defined in the rule could be extracted from the results, please verify the event and the risk definition, record=\"{}\"".format(record[uc_ref_field], record))
 
         # Initial exception handler
         except Exception as e:

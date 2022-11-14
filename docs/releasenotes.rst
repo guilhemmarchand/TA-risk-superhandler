@@ -1,6 +1,12 @@
 Release notes
 -------------
 
+Version 1.0.22
+==============
+
+- Enhancement: logging improvement, if we fail to retrieve the uc_ref from the upstream result, log the event itself to ease its identification
+- Enhancement: similarly, if this first requirement is not met, do not continue the execution for that record to avoid a general exception
+
 Version 1.0.21
 ==============
 
