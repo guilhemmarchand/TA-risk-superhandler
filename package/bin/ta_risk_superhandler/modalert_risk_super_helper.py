@@ -82,6 +82,10 @@ def process_event(helper, *args, **kwargs):
         helper.log_error("The uc_lookup_path=\"{}\" was provided as part of the arguments, but this file does not exist or is not readable".format(csv_dict_file))
         return 1
 
+    # conf
+    conf_file = "ta_risk_superhandler_settings"
+    confs = service.confs[str(conf_file)]
+
     # Advanced configuration
     # retrive the list of risk_object block list patterns (optional)
     try:
@@ -103,6 +107,27 @@ def process_event(helper, *args, **kwargs):
     except Exception as e:
         helper.log_error("failed to retrieve risk_object blocklist with exception=\"{}\"".format(str(e)))
         blocklist_risk_object_patterns = []
+
+    # retrive the list of threat_object block list patterns (optional)
+    try:
+        blocklist_threat_object_patterns_tmp = []
+        blocklist_threat_object_patterns = []
+
+        for stanza in confs:
+            if stanza.name == "advanced_configuration":
+                for key, value in stanza.content.items():
+                    if key == "blocklist_threat_object_patterns" and value:
+                        blocklist_threat_object_patterns_tmp = re.split(r',(?=")', value)
+
+        # handle double quotes
+        for blocklist_pattern in blocklist_threat_object_patterns_tmp:
+            result = re.match(r'\"([^\"]*)\"', blocklist_pattern)
+            if result:
+                blocklist_threat_object_patterns.append(result.group(1))
+        helper.log_debug("blocklist, a list for threat_object forbidden value was provided blocklist_threat_object_patterns=\"{}\"".format(blocklist_threat_object_patterns))
+    except Exception as e:
+        helper.log_error("failed to retrieve threat_object blocklist with exception=\"{}\"".format(str(e)))
+        blocklist_threat_object_patterns = []
 
     # Loop through the results
     records = helper.get_events()
@@ -287,8 +312,13 @@ def process_event(helper, *args, **kwargs):
                                 # log
                                 helper.log_debug("the threat_object format is a single value field, threat_object=\"{}\"".format(record[threat_object_field]))
 
-                                # append to our list
-                                threat_objects_list.append(record[threat_object_field])
+                                # check blocklist
+                                if record[threat_object_field] in blocklist_threat_object_patterns:
+                                    helper.log_warn("blocklist: the threat_object=\"{}\" is not allowed as per blocklist_threat_object_patterns=\"{}\"".format(record[risk_object], blocklist_threat_object_patterns))
+
+                                else:
+                                    # append to our list
+                                    threat_objects_list.append(record[threat_object_field])
 
                             else:
 
@@ -316,6 +346,12 @@ def process_event(helper, *args, **kwargs):
 
                             # Add to the record
                             new_record['threat_object'] = threat_objects_list
+
+                            # check blocklist (remove from list if blocklisted)
+                            for threat_object in threat_objects_list:
+                                if threat_object in blocklist_threat_object_patterns:
+                                    helper.log_warn("blocklist: the threat_object=\"{}\" is not allowed as per blocklist_threat_object_patterns=\"{}\"".format(threat_object, blocklist_threat_object_patterns))
+                                    threat_objects_list.remove(threat_object)
 
                             # Handle threat_object_type
                             threat_object_type = jsonSubObj['threat_object_type']
@@ -419,12 +455,15 @@ def process_event(helper, *args, **kwargs):
 
                                     # check blocklist
                                     if record[risk_object] in blocklist_risk_object_patterns:
-                                        helper.log_warning("blocklist: the risk_object=\"{}\" is not allowed as per blocklist_risk_object_patterns=\"{}\"".format(record[risk_object], blocklist_risk_object_patterns))
+                                        helper.log_warn("blocklist: the risk_object=\"{}\" is not allowed as per blocklist_risk_object_patterns=\"{}\"".format(record[risk_object], blocklist_risk_object_patterns))
 
                                     else:
 
                                         # log
                                         helper.log_debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
+
+                                        # increment
+                                        risk_objects_count+=1
 
                                         # Handle this mv structure in a new record
                                         mv_record = {}
@@ -460,14 +499,14 @@ def process_event(helper, *args, **kwargs):
                                             risk_object_list = record[risk_object].split(format_separator)
                                         except Exception as e:
                                             risk_object_list = record[risk_object]
-                                            helper.log_warning("uc_ref=\"{}\", could not load the field=\"{}\" as a format separated field, the rule definition is likely incorrect, exception=\"{}\"".format(record[uc_ref_field], risk_object, str(e)))
+                                            helper.log_warn("uc_ref=\"{}\", could not load the field=\"{}\" as a format separated field, the rule definition is likely incorrect, exception=\"{}\"".format(record[uc_ref_field], risk_object, str(e)))
 
                                     # stored in a native list
                                     else:
 
                                         # if the format separator was incorrectly set, generate a warning message
                                         if format_separator:
-                                            helper.log_warning("uc_ref=\"{}\", the risk_object=\"{}\" has a format_separator=\"{}\" but it comes as a multivalue field instead, this configuration is likely incorrect".format(record[uc_ref_field], risk_object, format_separator))
+                                            helper.log_warn("uc_ref=\"{}\", the risk_object=\"{}\" has a format_separator=\"{}\" but it comes as a multivalue field instead, this configuration is likely incorrect".format(record[uc_ref_field], risk_object, format_separator))
 
                                         # store
                                         risk_object_list = record[risk_object]
@@ -476,7 +515,7 @@ def process_event(helper, *args, **kwargs):
 
                                         # check block list
                                         if risk_subobject in blocklist_risk_object_patterns:
-                                            helper.log_warning("blocklist: the risk_object=\"{}\" is not allowed as per blocklist_risk_object_patterns=\"{}\"".format(risk_subobject, blocklist_risk_object_patterns))
+                                            helper.log_warn("blocklist: the risk_object=\"{}\" is not allowed as per blocklist_risk_object_patterns=\"{}\"".format(risk_subobject, blocklist_risk_object_patterns))
 
                                         else:
                                             if risk_subobject:

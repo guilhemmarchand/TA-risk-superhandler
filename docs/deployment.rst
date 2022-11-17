@@ -422,6 +422,45 @@ You can specify in the Risk definition rule, the special option ``format_separat
 
     {"threat_object": "file_name", "threat_object_type": "file", "format_separator": "|"}
 
+Blocklists for risks and threats
+================================
+
+Blocklist for risk objects
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**You can define a list of patterns that cannot be accepted for a risk object, if the risk objet matches any of the patterns in the block list, it will not lead to the creation of a risk event.**
+
+To do this, either make the application to be visible (it is not visible by default) and go in Configuration / Advanced configuration, or configure it trough a local configuration file:
+
+*local/ta_risk_superhandler_settings.conf*
+
+::
+
+    [advanced_configuration]
+    blocklist_risk_object_patterns = "-","unknown","admin","Admin","administrator","Administrator"
+
+The format is a command separated list of patterns between double quotes.
+
+Null and empty values are natively takin in charge when the backend processes the events.
+
+Blocklist for threat objects
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**You can define a list of patterns that cannot be accepted for a threat object, if the threat objet matches any of the patterns in the block list, it will not be added to the risk event.**
+
+To do this, either make the application to be visible (it is not visible by default) and go in Configuration / Advanced configuration, or configure it trough a local configuration file:
+
+*local/ta_risk_superhandler_settings.conf*
+
+::
+
+    [advanced_configuration]
+    blocklist_threat_object_patterns = "-","svc.exe"
+
+The format is a command separated list of patterns between double quotes.
+
+Null and empty values are natively takin in charge when the backend processes the events.
+
 Troubleshoot
 ############
 

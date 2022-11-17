@@ -3,7 +3,9 @@ Release notes
 
 Version 1.0.23
 ==============
+
 - Enhancement: via a configurable pattern, allow excluding custom patterns which should not lead to the creation of a risk event (ex: risk_object="-", risk_object="unknown")
+- Fix: Incorrect logging message via the modalert in some circumstances regarding the presence or not at valid risk object
 
 Version 1.0.22
 ==============

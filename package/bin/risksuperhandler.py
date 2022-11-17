@@ -90,7 +90,10 @@ class RiskSuperHandler(StreamingCommand):
         except Exception as e:
             logging.warning("failed to retriieve application level logging with exception=\"{}\"".format(e))
 
+        #
         # Advanced configuration
+        #
+
         # retrive the list of risk_object block list patterns (optional)
         try:
             blocklist_risk_object_patterns_tmp = []
@@ -111,6 +114,27 @@ class RiskSuperHandler(StreamingCommand):
         except Exception as e:
             logging.error("failed to retrieve risk_object blocklist with exception=\"{}\"".format(str(e)))
             blocklist_risk_object_patterns = []
+
+        # retrive the list of threat_object block list patterns (optional)
+        try:
+            blocklist_threat_object_patterns_tmp = []
+            blocklist_threat_object_patterns = []
+
+            for stanza in confs:
+                if stanza.name == "advanced_configuration":
+                    for key, value in stanza.content.items():
+                        if key == "blocklist_threat_object_patterns" and value:
+                            blocklist_threat_object_patterns_tmp = re.split(r',(?=")', value)
+
+            # handle double quotes
+            for blocklist_pattern in blocklist_threat_object_patterns_tmp:
+                result = re.match(r'\"([^\"]*)\"', blocklist_pattern)
+                if result:
+                    blocklist_threat_object_patterns.append(result.group(1))
+            logging.debug("blocklist, a list for threat_object forbidden value was provided blocklist_threat_object_patterns=\"{}\"".format(blocklist_threat_object_patterns))
+        except Exception as e:
+            logging.error("failed to retrieve threat_object blocklist with exception=\"{}\"".format(str(e)))
+            blocklist_threat_object_patterns = []
 
         # To trace all attr
         #logging.debug("Trace all meta")
@@ -367,8 +391,13 @@ class RiskSuperHandler(StreamingCommand):
                                     # log
                                     logging.debug("the threat_object format is a single value field, threat_object=\"{}\"".format(record[threat_object_field]))
 
-                                    # append to our list
-                                    threat_objects_list.append(record[threat_object_field])
+                                    # check blocklist
+                                    if record[threat_object_field] in blocklist_threat_object_patterns:
+                                        logging.warn("blocklist: the threat_object=\"{}\" is not allowed as per blocklist_threat_object_patterns=\"{}\"".format(record[risk_object], blocklist_threat_object_patterns))
+
+                                    else:
+                                        # append to our list
+                                        threat_objects_list.append(record[threat_object_field])
 
                                 else:
 
@@ -396,6 +425,12 @@ class RiskSuperHandler(StreamingCommand):
 
                                 # Add to the record
                                 new_record['threat_object'] = threat_objects_list
+
+                                # check blocklist (remove from list if blocklisted)
+                                for threat_object in threat_objects_list:
+                                    if threat_object in blocklist_threat_object_patterns:
+                                        logging.warn("blocklist: the threat_object=\"{}\" is not allowed as per blocklist_threat_object_patterns=\"{}\"".format(threat_object, blocklist_threat_object_patterns))
+                                        threat_objects_list.remove(threat_object)
 
                                 # Handle threat_object_type
                                 threat_object_type = jsonSubObj['threat_object_type']
