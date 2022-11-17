@@ -38,6 +38,34 @@
                         }
                     ],
                     "title": "Logging"
+                },
+                {
+                    "name": "advanced_configuration",
+                    "title": "Advanced configuration",
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Block list risk values",
+                            "help": "Provide a comma separated list of values in double quotes for risk objects that cannot be accepted and should not lead to a risk event to be created",
+                            "field": "blocklist_risk_object_patterns",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "",
+                            "required": false
+                        },
+                        {
+                            "type": "text",
+                            "label": "Block list threat values",
+                            "help": "Provide a comma separated list of values in double quotes for threat objects that cannot be accepted and should not added to a risk event",
+                            "field": "blocklist_threat_object_patterns",
+                            "options": {
+                                "display": true
+                            },
+                            "defaultValue": "",
+                            "required": false
+                        }
+                    ]
                 }
             ],
             "title": "Configuration",
@@ -70,7 +98,7 @@
     "meta": {
         "name": "TA-risk-superhandler",
         "restRoot": "ta_risk_superhandler",
-        "version": "1.0.22",
+        "version": "1.0.23",
         "displayName": "Risk superhandler framework for Enterprise Security",
         "schemaVersion": "0.0.3"
     }

@@ -90,6 +90,52 @@ class RiskSuperHandler(StreamingCommand):
         except Exception as e:
             logging.warning("failed to retriieve application level logging with exception=\"{}\"".format(e))
 
+        #
+        # Advanced configuration
+        #
+
+        # retrive the list of risk_object block list patterns (optional)
+        try:
+            blocklist_risk_object_patterns_tmp = []
+            blocklist_risk_object_patterns = []
+
+            for stanza in confs:
+                if stanza.name == "advanced_configuration":
+                    for key, value in stanza.content.items():
+                        if key == "blocklist_risk_object_patterns" and value:
+                            blocklist_risk_object_patterns_tmp = re.split(r',(?=")', value)
+
+            # handle double quotes
+            for blocklist_pattern in blocklist_risk_object_patterns_tmp:
+                result = re.match(r'\"([^\"]*)\"', blocklist_pattern)
+                if result:
+                    blocklist_risk_object_patterns.append(result.group(1))
+            logging.debug("blocklist, a list for risk_object forbidden value was provided blocklist_risk_object_patterns=\"{}\"".format(blocklist_risk_object_patterns))
+        except Exception as e:
+            logging.error("failed to retrieve risk_object blocklist with exception=\"{}\"".format(str(e)))
+            blocklist_risk_object_patterns = []
+
+        # retrive the list of threat_object block list patterns (optional)
+        try:
+            blocklist_threat_object_patterns_tmp = []
+            blocklist_threat_object_patterns = []
+
+            for stanza in confs:
+                if stanza.name == "advanced_configuration":
+                    for key, value in stanza.content.items():
+                        if key == "blocklist_threat_object_patterns" and value:
+                            blocklist_threat_object_patterns_tmp = re.split(r',(?=")', value)
+
+            # handle double quotes
+            for blocklist_pattern in blocklist_threat_object_patterns_tmp:
+                result = re.match(r'\"([^\"]*)\"', blocklist_pattern)
+                if result:
+                    blocklist_threat_object_patterns.append(result.group(1))
+            logging.debug("blocklist, a list for threat_object forbidden value was provided blocklist_threat_object_patterns=\"{}\"".format(blocklist_threat_object_patterns))
+        except Exception as e:
+            logging.error("failed to retrieve threat_object blocklist with exception=\"{}\"".format(str(e)))
+            blocklist_threat_object_patterns = []
+
         # To trace all attr
         #logging.debug("Trace all meta")
         #logging.debug(vars(self))
@@ -113,11 +159,6 @@ class RiskSuperHandler(StreamingCommand):
 
         # get current user
         username = self._metadata.searchinfo.username
-
-        # Splunk header
-        splunk_headers = {
-        'Authorization': 'Splunk %s' % session_key,
-        'Content-Type': 'application/json'}
 
         # Get service
         service = client.connect(
@@ -350,8 +391,13 @@ class RiskSuperHandler(StreamingCommand):
                                     # log
                                     logging.debug("the threat_object format is a single value field, threat_object=\"{}\"".format(record[threat_object_field]))
 
-                                    # append to our list
-                                    threat_objects_list.append(record[threat_object_field])
+                                    # check blocklist
+                                    if record[threat_object_field] in blocklist_threat_object_patterns:
+                                        logging.warn("blocklist: the threat_object=\"{}\" is not allowed as per blocklist_threat_object_patterns=\"{}\"".format(record[risk_object], blocklist_threat_object_patterns))
+
+                                    else:
+                                        # append to our list
+                                        threat_objects_list.append(record[threat_object_field])
 
                                 else:
 
@@ -379,6 +425,12 @@ class RiskSuperHandler(StreamingCommand):
 
                                 # Add to the record
                                 new_record['threat_object'] = threat_objects_list
+
+                                # check blocklist (remove from list if blocklisted)
+                                for threat_object in threat_objects_list:
+                                    if threat_object in blocklist_threat_object_patterns:
+                                        logging.warn("blocklist: the threat_object=\"{}\" is not allowed as per blocklist_threat_object_patterns=\"{}\"".format(threat_object, blocklist_threat_object_patterns))
+                                        threat_objects_list.remove(threat_object)
 
                                 # Handle threat_object_type
                                 threat_object_type = jsonSubObj['threat_object_type']
@@ -480,40 +532,46 @@ class RiskSuperHandler(StreamingCommand):
                                     # handle the format field
                                     if not format_separator and len(risk_object_mv_field) == 0 and type(record[risk_object]) != list:
 
-                                        # log
-                                        logging.debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
+                                        # check blocklist
+                                        if record[risk_object] in blocklist_risk_object_patterns:
+                                            logging.warn("blocklist: the risk_object=\"{}\" is not allowed as per blocklist_risk_object_patterns=\"{}\"".format(record[risk_object], blocklist_risk_object_patterns))
 
-                                        # increment
-                                        risk_objects_count+=1
+                                        else:
 
-                                        # Add
-                                        new_record['risk_object'] = record[risk_object]
-                                        new_record['risk_object_type'] = risk_object_type
-                                        new_record['risk_score'] = risk_score
-                                        new_record['risk_message'] = risk_message
+                                            # log
+                                            logging.debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
 
-                                        # log
-                                        logging.debug("before adding the risk, risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\", risk_message=\"{}\"".format(record[risk_object], risk_object_type, risk_score, risk_message))
+                                            # increment
+                                            risk_objects_count+=1
 
-                                        # Handle this mv structure in a new record
-                                        mv_record = {}
-                                        for k in new_record:
-                                            mv_record[k] = new_record[k]
-                                        logging.debug("mv_record=\"{}\"".format(mv_record))
+                                            # Add
+                                            new_record['risk_object'] = record[risk_object]
+                                            new_record['risk_object_type'] = risk_object_type
+                                            new_record['risk_score'] = risk_score
+                                            new_record['risk_message'] = risk_message
 
-                                        # Add
-                                        mv_record['risk_object'] = record[risk_object]
-                                        mv_record['risk_object_type'] = risk_object_type
-                                        mv_record['risk_score'] = risk_score
-                                        mv_record['risk_message'] = risk_message
+                                            # log
+                                            logging.debug("before adding the risk, risk_object=\"{}\", risk_object_type=\"{}\", risk_score=\"{}\", risk_message=\"{}\"".format(record[risk_object], risk_object_type, risk_score, risk_message))
 
-                                        # Add original fields
-                                        for k in record:
-                                            if not k.startswith('__mv'):
-                                                mv_record[k] = record[k]
+                                            # Handle this mv structure in a new record
+                                            mv_record = {}
+                                            for k in new_record:
+                                                mv_record[k] = new_record[k]
+                                            logging.debug("mv_record=\"{}\"".format(mv_record))
 
-                                        # Add to final records
-                                        all_new_records.append(mv_record)
+                                            # Add
+                                            mv_record['risk_object'] = record[risk_object]
+                                            mv_record['risk_object_type'] = risk_object_type
+                                            mv_record['risk_score'] = risk_score
+                                            mv_record['risk_message'] = risk_message
+
+                                            # Add original fields
+                                            for k in record:
+                                                if not k.startswith('__mv'):
+                                                    mv_record[k] = record[k]
+
+                                            # Add to final records
+                                            all_new_records.append(mv_record)
 
                                     else:
 
@@ -544,30 +602,38 @@ class RiskSuperHandler(StreamingCommand):
                                             risk_object_list = record[risk_object]
 
                                         for risk_subobject in risk_object_list:
-                                            logging.debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
 
-                                            # increment
-                                            risk_objects_count+=1
+                                            # check block list
+                                            if risk_subobject in blocklist_risk_object_patterns:
+                                                logging.warn("blocklist: the risk_object=\"{}\" is not allowed as per blocklist_risk_object_patterns=\"{}\"".format(risk_subobject, blocklist_risk_object_patterns))
 
-                                            # Handle this mv structure in a new record
-                                            mv_record = {}
-                                            for k in new_record:
-                                                mv_record[k] = new_record[k]
-                                            log.debug("mv_record=\"{}\"".format(mv_record))
+                                            else:
+                                                if risk_subobject:
 
-                                            # Add
-                                            mv_record['risk_object'] = risk_subobject
-                                            mv_record['risk_object_type'] = risk_object_type
-                                            mv_record['risk_score'] = risk_score
-                                            mv_record['risk_message'] = risk_message
+                                                    logging.debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
 
-                                            # Add original fields
-                                            for k in record:
-                                                if not k.startswith('__mv'):
-                                                    mv_record[k] = record[k]
+                                                    # increment
+                                                    risk_objects_count+=1
 
-                                            # Add to final records
-                                            all_new_records.append(mv_record)
+                                                    # Handle this mv structure in a new record
+                                                    mv_record = {}
+                                                    for k in new_record:
+                                                        mv_record[k] = new_record[k]
+                                                    log.debug("mv_record=\"{}\"".format(mv_record))
+
+                                                    # Add
+                                                    mv_record['risk_object'] = risk_subobject
+                                                    mv_record['risk_object_type'] = risk_object_type
+                                                    mv_record['risk_score'] = risk_score
+                                                    mv_record['risk_message'] = risk_message
+
+                                                    # Add original fields
+                                                    for k in record:
+                                                        if not k.startswith('__mv'):
+                                                            mv_record[k] = record[k]
+
+                                                    # Add to final records
+                                                    all_new_records.append(mv_record)
 
                                 # if we have not matched any risk_object as per the definition, generate an error message
                                 if not risk_objects_count>0:
