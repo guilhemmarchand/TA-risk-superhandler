@@ -1,6 +1,11 @@
 Release notes
 -------------
 
+Version 1.0.24
+==============
+
+- Enhancement: If a risk_score value is set at the search level before the action is called, this should override the definition as per the Risk out of the box behaviour in ES
+
 Version 1.0.23
 ==============
 

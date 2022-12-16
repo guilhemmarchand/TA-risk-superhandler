@@ -98,7 +98,7 @@
     "meta": {
         "name": "TA-risk-superhandler",
         "restRoot": "ta_risk_superhandler",
-        "version": "1.0.23",
+        "version": "1.0.24",
         "displayName": "Risk superhandler framework for Enterprise Security",
         "schemaVersion": "0.0.3"
     }

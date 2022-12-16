@@ -488,6 +488,16 @@ class RiskSuperHandler(StreamingCommand):
                                 risk_score = jsonSubObj['risk_score']
                                 risk_message = jsonSubObj['risk_message']
 
+                                # if a risk_score is defined in the event already, this should override the JSON rule, as per OOTB Risk alert behaviour
+                                try:
+                                    event_risk_score = float(record.get('risk_score'))
+                                    if event_risk_score:
+                                        logging.info("A value for risk_score of {} was found in the event, this will override the JSON definition".format(event_risk_score))
+                                        risk_score = event_risk_score
+
+                                except Exception as e:
+                                    logging.debug("There are no risk_score value defined at the event level")
+
                                 # Verify that the risk_object field exists, and proceed
                                 risk_object_value = None
                                 try:
