@@ -1,5 +1,8 @@
 # Risk Super Handler for Splunk Enterprise Security - Implement Risk Based Alerting
 
+# Binary File Declaration
+lib/charset_normalizer/md__mypyc.cpython-38-x86_64-linux-gnu.so
+
 ## The Risk Super handler for Splunk Enterprise security provides services for
 
 - Generating risk events using the Splunk Enterprise Security risk framework for **Risk Based Alerting purposes (RBA)** with additional levels of features

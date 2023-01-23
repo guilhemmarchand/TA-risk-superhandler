@@ -400,9 +400,6 @@ def process_event(helper, *args, **kwargs):
                         # Loop if we have a JSON risk rule
                         if jsonSubObjHasRisk:
 
-                            # risk objects counter
-                            risk_objects_count = 0
-
                             # for each JSON rule, apply the risk - magic
                             risk_object = jsonSubObj['risk_object']
                             risk_object_type = jsonSubObj['risk_object_type']
@@ -472,9 +469,6 @@ def process_event(helper, *args, **kwargs):
                                         # log
                                         helper.log_debug("the risk object format is a single value field, risk_object=\"{}\"".format(risk_object))
 
-                                        # increment
-                                        risk_objects_count+=1
-
                                         # Handle this mv structure in a new record
                                         mv_record = {}
                                         for k in new_record:
@@ -531,9 +525,6 @@ def process_event(helper, *args, **kwargs):
                                             if risk_subobject:
                                                 helper.log_debug("run the risk action against risk_subobject=\"{}\"".format(risk_subobject))
 
-                                                # increment
-                                                risk_objects_count+=1
-
                                                 # Handle this mv structure in a new record
                                                 mv_record = {}
                                                 for k in new_record:
@@ -553,10 +544,6 @@ def process_event(helper, *args, **kwargs):
 
                                                 # Add to final records
                                                 all_new_records.append(mv_record)
-
-                            # if we have not matched any risk_object as per the definition, generate an error message
-                            if not risk_objects_count>0:
-                                helper.log_error("uc_ref=\"{}\", none of the risk objects defined in the rule could be extracted from the results, please verify the event and the risk definition, record=\"{}\"".format(record[uc_ref_field], record))
 
         # Initial exception handler
         except Exception as e:
