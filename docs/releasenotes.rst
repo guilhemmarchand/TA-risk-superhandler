@@ -4,6 +4,8 @@ Release notes
 Version 1.0.25
 ==============
 
+- Fix: logs are incorrectly claiming that none of the risk objects could be extracted at least one risk object cannot be extracted, instead of no risk match for any of the risk objects in the JSON definition
+
 Version 1.0.24
 ==============
 
