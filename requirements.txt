@@ -1,0 +1,2 @@
+splunk-add-on-ucc-framework>=5.19.0
+coloredlogs>=15.0.1
