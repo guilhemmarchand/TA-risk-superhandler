@@ -1,6 +1,16 @@
 Installation, configuration and usage
 -------------------------------------
 
+.. admonition:: New with Version 1.0.26: deduplication at the backend level
+
+    - Since the release 1.0.26, the super handler alert action and custom command support handling risk duplicates at the backend level.
+    - Duplicated risk events can happen for a number of reasons (overlap in the Risk Rules, etc), are tedious to deal with and impact the Risk worklow and calculations in many ways.
+    - This works by keeping track of the risk events generated with their factors (use case, risk_object_type, risk_object) in a KVstore collection at the Python level lowest level.
+    - The Kvstore collection transforms name is ``risk_superhandler_dedup``.
+    - When the risk action is requested, the backend verifies when the latest risk event was generated for the same factors.
+    - If the time spent since since the last event was created is less than the minimal time allowed (option: ``min_sec_since_last_riskevent``, 30 minutes by default), the risk event creation is refused, avoiding the generation of a duplicated risk event.
+    - The dedup option is by default disabled (option: ``dedup`` is set to False)
+
 Installation
 #############
 
@@ -360,6 +370,18 @@ For instamce:
 
 Will only generate risk events if the user username equals to "svc-siem", allowing to prevent the risk generation unless the use case is run by the proper user (a good practice is to re-assign correlation searches to a dedicated Splunk service account!)
 
+dedup
+=====
+
+The ``dedup`` option can be enabled on both the alert action and the custom command, the option takes dedup accepts "True" / "False":
+
+- enable or disable dedup capabilities, when enabled, the backend will not create a new risk event for the same combination of factors if the last registered risk event is not newer than last risk + min_sec_since_last_riskevent. (30 minutes by default)
+
+It is meant to be used in combination with the following option:
+
+- min_sec_since_last_riskevent
+
+Minimum seconds since last risk event, if the time spent in seconds since the last registered risk event for this combination of factors is not higher than this value, the event is consdered as a duplicate risk event.
 
 Multivalue and string delimited fields
 ======================================

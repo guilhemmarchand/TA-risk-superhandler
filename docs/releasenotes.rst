@@ -1,6 +1,11 @@
 Release notes
 -------------
 
+Version 1.0.26
+==============
+
+- feature - Provide dedup capabilities handled at the level of the backend #14
+
 Version 1.0.25
 ==============
 
