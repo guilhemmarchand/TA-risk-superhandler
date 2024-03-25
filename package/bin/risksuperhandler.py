@@ -90,7 +90,7 @@ class RiskSuperHandler(StreamingCommand):
 
     dedup = Option(
         doc="""
-        **Syntax:** **Dedup option, enable or disable dedup capabilities, when enabled, the backend will not create a new risk event for the same combination of factors if the last registered risk event is not newer than last risk + min_sec_since_last_riskevent. (15 minutes by default) **
+        **Syntax:** **Dedup option, enable or disable dedup capabilities, when enabled, the backend will not create a new risk event for the same combination of factors if the last registered risk event is not newer than last risk + min_sec_since_last_riskevent. (30 minutes by default) **
         **Description:** Dedup option.""",
         require=False,
         default=False,
@@ -102,7 +102,7 @@ class RiskSuperHandler(StreamingCommand):
         **Syntax:** **Minimum seconds since last risk event, if the time spent in seconds since the last registered risk event for this combination of factors is not higher than this value, the event is consdered as a duplicate risk event.**
         **Description:** Minimum seconds since last risk event.""",
         require=False,
-        default=900,
+        default=1800,
         validate=validators.Integer(),
     )
 
@@ -141,9 +141,7 @@ class RiskSuperHandler(StreamingCommand):
             collection_records, collection_records_keys, collection_dict = (
                 get_full_kv_collection(collection, collection_name)
             )
-            logging.info(
-                f'MARKER collection_dict="{json.dumps(collection_dict, indent=2)}"'
-            )
+            logging.debug(f'collection_dict="{json.dumps(collection_dict, indent=2)}"')
 
         #
         # Advanced configuration
@@ -886,8 +884,8 @@ class RiskSuperHandler(StreamingCommand):
                                                     mv_record[k] = record[k]
 
                                             # Add to final records
-                                            logging.info(
-                                                f'MARKER Adding record="{json.dumps(mv_record, indent=2)}"'
+                                            logging.debug(
+                                                f'Adding record="{json.dumps(mv_record, indent=2)}"'
                                             )
                                             mv_record_key_factors = f'{mv_record["risk_object_type"]}:{mv_record["risk_object"]}'
                                             mv_record_key_md5 = hashlib.md5(

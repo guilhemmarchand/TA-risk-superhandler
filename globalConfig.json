@@ -95,9 +95,9 @@
                 {
                     "type": "singleSelect",
                     "label": "Dedup risk events",
-                    "field": "jira_results_description",
-                    "defaultValue": "1",
-                    "help": "Dedup option, enable or disable dedup capabilities, when enabled, the backend will not create a new risk event for the same combination of factors if the last registered risk event is not newer than last risk + min_sec_since_last_riskevent. (15 minutes by default)",
+                    "field": "dedup",
+                    "defaultValue": "0",
+                    "help": "Dedup option, enable or disable dedup capabilities, when enabled, the backend will not create a new risk event for the same combination of factors if the last registered risk event is not newer than last risk + min_sec_since_last_riskevent. (30 minutes by default)",
                     "required": false,
                     "options": {
                         "items": [
@@ -118,7 +118,7 @@
                     "label": "Minimum seconds since last risk event",
                     "help": "Minimum seconds since last risk event, if the time spent in seconds since the last registered risk event for this combination of factors is not higher than this value, the event is consdered as a duplicate risk event.",
                     "field": "min_sec_since_last_riskevent",
-                    "defaultValue": "900",
+                    "defaultValue": "1800",
                     "required": false
                 }
             ]
