@@ -5,6 +5,7 @@ Version 1.0.26
 ==============
 
 - feature - Provide dedup capabilities handled at the level of the backend #14
+- bug - Exclusions for risk_object and threat_pbject are no behaving properly and should be case insensitive #16
 
 Version 1.0.25
 ==============
