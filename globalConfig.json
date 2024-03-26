@@ -46,23 +46,23 @@
                         {
                             "type": "text",
                             "label": "Block list risk values",
-                            "help": "Provide a comma separated list of values in double quotes for risk objects that cannot be accepted and should not lead to a risk event to be created",
+                            "help": "Provide a comma separated list of values in double quotes for risk objects that cannot be accepted and should not lead to a risk event to be created, exclusions are case insensitive.",
                             "field": "blocklist_risk_object_patterns",
                             "options": {
                                 "display": true
                             },
-                            "defaultValue": "",
+                            "defaultValue": "\"unknown\",\"N/A\",\"-\"",
                             "required": false
                         },
                         {
                             "type": "text",
                             "label": "Block list threat values",
-                            "help": "Provide a comma separated list of values in double quotes for threat objects that cannot be accepted and should not added to a risk event",
+                            "help": "Provide a comma separated list of values in double quotes for threat objects that cannot be accepted and should not added to a risk event, exclusions are case insensitive.",
                             "field": "blocklist_threat_object_patterns",
                             "options": {
                                 "display": true
                             },
-                            "defaultValue": "",
+                            "defaultValue": "\"unknown\",\"N/A\",\"-\"",
                             "required": false
                         }
                     ]
@@ -91,6 +91,35 @@
                     "help": "The name of the field in the use case lookup containing the reference for this risk rule",
                     "field": "uc_ref_field",
                     "required": true
+                },
+                {
+                    "type": "singleSelect",
+                    "label": "Dedup risk events",
+                    "field": "dedup",
+                    "defaultValue": "0",
+                    "help": "Dedup option, enable or disable dedup capabilities, when enabled, the backend will not create a new risk event for the same combination of factors if the last registered risk event is not newer than last risk + min_sec_since_last_riskevent. (30 minutes by default)",
+                    "required": false,
+                    "options": {
+                        "items": [
+                            {
+                                "value": "1",
+                                "label": "True"
+                            },
+                            {
+                                "value": "0",
+                                "label": "False"
+                            }
+                        ],
+                        "display": true
+                    }
+                },
+                {
+                    "type": "text",
+                    "label": "Minimum seconds since last risk event",
+                    "help": "Minimum seconds since last risk event, if the time spent in seconds since the last registered risk event for this combination of factors is not higher than this value, the event is consdered as a duplicate risk event.",
+                    "field": "min_sec_since_last_riskevent",
+                    "defaultValue": "1800",
+                    "required": false
                 }
             ]
         }
@@ -98,8 +127,9 @@
     "meta": {
         "name": "TA-risk-superhandler",
         "restRoot": "ta_risk_superhandler",
-        "version": "1.0.25",
+        "version": "1.0.26",
         "displayName": "Risk superhandler framework for Enterprise Security",
-        "schemaVersion": "0.0.3"
+        "schemaVersion": "0.0.3",
+        "_uccVersion": "5.39.1"
     }
 }
