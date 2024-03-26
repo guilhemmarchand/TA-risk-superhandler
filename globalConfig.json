@@ -46,23 +46,23 @@
                         {
                             "type": "text",
                             "label": "Block list risk values",
-                            "help": "Provide a comma separated list of values in double quotes for risk objects that cannot be accepted and should not lead to a risk event to be created",
+                            "help": "Provide a comma separated list of values in double quotes for risk objects that cannot be accepted and should not lead to a risk event to be created, exclusions are case insensitive.",
                             "field": "blocklist_risk_object_patterns",
                             "options": {
                                 "display": true
                             },
-                            "defaultValue": "",
+                            "defaultValue": "\"unknown\",\"N/A\",\"-\"",
                             "required": false
                         },
                         {
                             "type": "text",
                             "label": "Block list threat values",
-                            "help": "Provide a comma separated list of values in double quotes for threat objects that cannot be accepted and should not added to a risk event",
+                            "help": "Provide a comma separated list of values in double quotes for threat objects that cannot be accepted and should not added to a risk event, exclusions are case insensitive.",
                             "field": "blocklist_threat_object_patterns",
                             "options": {
                                 "display": true
                             },
-                            "defaultValue": "",
+                            "defaultValue": "\"unknown\",\"N/A\",\"-\"",
                             "required": false
                         }
                     ]

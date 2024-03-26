@@ -81,11 +81,14 @@ def process_event(helper, *args, **kwargs):
     uc_ref_field = helper.get_param("uc_ref_field")
     helper.log_info("uc_ref_field={}".format(uc_ref_field))
 
-    dedup = helper.get_param("dedup")
-    try:  # Convert to boolean
-        dedup = bool(dedup)
+    try:
+        dedup = int(helper.get_param("dedup"))
+        if dedup == 0:
+            dedup = False
+        elif dedup == 1:
+            dedup = True
     except Exception as e:
-        dedup = True
+        dedup = False
     helper.log_info("dedup={}".format(dedup))
 
     min_sec_since_last_riskevent = helper.get_param("min_sec_since_last_riskevent")
@@ -132,27 +135,22 @@ def process_event(helper, *args, **kwargs):
     confs = service.confs[str(conf_file)]
 
     # Advanced configuration
-    # retrive the list of risk_object block list patterns (optional)
-    try:
-        blocklist_risk_object_patterns_tmp = []
-        blocklist_risk_object_patterns = []
 
+    def process_value(value):
+        # Split the string by comma
+        items = re.split(r",", value)
+        # Remove quotes from each item and convert to lower case
+        return [item.strip('"').lower() for item in items]
+
+    # retrieve the list of risk_object block list patterns (optional)
+    try:
+        blocklist_risk_object_patterns = []
         for stanza in confs:
             if stanza.name == "advanced_configuration":
                 for key, value in stanza.content.items():
-                    if key == "blocklist_risk_object_patterns" and value:
-                        blocklist_risk_object_patterns_tmp = re.split(r',(?=")', value)
+                    if key == "blocklist_risk_object_patterns":
+                        blocklist_risk_object_patterns = process_value(value)
 
-        # handle double quotes
-        for blocklist_pattern in blocklist_risk_object_patterns_tmp:
-            result = re.match(r"\"([^\"]*)\"", blocklist_pattern)
-            if result:
-                blocklist_risk_object_patterns.append(result.group(1))
-        helper.log_debug(
-            'blocklist, a list for risk_object forbidden value was provided blocklist_risk_object_patterns="{}"'.format(
-                blocklist_risk_object_patterns
-            )
-        )
     except Exception as e:
         helper.log_error(
             'failed to retrieve risk_object blocklist with exception="{}"'.format(
@@ -161,29 +159,15 @@ def process_event(helper, *args, **kwargs):
         )
         blocklist_risk_object_patterns = []
 
-    # retrive the list of threat_object block list patterns (optional)
+    # retrieve the list of threat_object block list patterns (optional)
     try:
-        blocklist_threat_object_patterns_tmp = []
         blocklist_threat_object_patterns = []
-
         for stanza in confs:
             if stanza.name == "advanced_configuration":
                 for key, value in stanza.content.items():
-                    if key == "blocklist_threat_object_patterns" and value:
-                        blocklist_threat_object_patterns_tmp = re.split(
-                            r',(?=")', value
-                        )
+                    if key == "blocklist_threat_object_patterns":
+                        blocklist_threat_object_patterns = process_value(value)
 
-        # handle double quotes
-        for blocklist_pattern in blocklist_threat_object_patterns_tmp:
-            result = re.match(r"\"([^\"]*)\"", blocklist_pattern)
-            if result:
-                blocklist_threat_object_patterns.append(result.group(1))
-        helper.log_debug(
-            'blocklist, a list for threat_object forbidden value was provided blocklist_threat_object_patterns="{}"'.format(
-                blocklist_threat_object_patterns
-            )
-        )
     except Exception as e:
         helper.log_error(
             'failed to retrieve threat_object blocklist with exception="{}"'.format(
@@ -448,17 +432,17 @@ def process_event(helper, *args, **kwargs):
                                 )
 
                                 # check blocklist
-                                if (
-                                    record[threat_object_field]
-                                    in blocklist_threat_object_patterns
+                                threat_object = record[threat_object_field]
+                                if any(
+                                    threat_object.lower() == blocklist_pattern.lower()
+                                    for blocklist_pattern in blocklist_threat_object_patterns
                                 ):
                                     helper.log_warn(
                                         'blocklist: the threat_object="{}" is not allowed as per blocklist_threat_object_patterns="{}"'.format(
-                                            record[risk_object],
+                                            threat_object,
                                             blocklist_threat_object_patterns,
                                         )
                                     )
-
                                 else:
                                     # append to our list
                                     threat_objects_list.append(
@@ -513,7 +497,10 @@ def process_event(helper, *args, **kwargs):
 
                             # check blocklist (remove from list if blocklisted)
                             for threat_object in threat_objects_list:
-                                if threat_object in blocklist_threat_object_patterns:
+                                if any(
+                                    threat_object.lower() == blocklist_pattern.lower()
+                                    for blocklist_pattern in blocklist_threat_object_patterns
+                                ):
                                     helper.log_warn(
                                         'blocklist: the threat_object="{}" is not allowed as per blocklist_threat_object_patterns="{}"'.format(
                                             threat_object,
@@ -636,11 +623,10 @@ def process_event(helper, *args, **kwargs):
                                     )
                                 )
 
-                            if (
-                                risk_object_value
-                                and not risk_object_value
-                                in blocklist_risk_object_patterns
-                            ):
+                            if risk_object_value and not risk_object_value.lower() in [
+                                pattern.lower()
+                                for pattern in blocklist_risk_object_patterns
+                            ]:
 
                                 # Allow a field to be provided as part of an mv structure by submitting a delimiter, if no delimiter assume the field is a regular
                                 # single value
@@ -700,10 +686,10 @@ def process_event(helper, *args, **kwargs):
                                 ):
 
                                     # check blocklist
-                                    if (
-                                        record[risk_object]
-                                        in blocklist_risk_object_patterns
-                                    ):
+                                    if record[risk_object].lower() in [
+                                        pattern.lower()
+                                        for pattern in blocklist_risk_object_patterns
+                                    ]:
                                         helper.log_warn(
                                             'blocklist: the risk_object="{}" is not allowed as per blocklist_risk_object_patterns="{}"'.format(
                                                 record[risk_object],
@@ -766,7 +752,20 @@ def process_event(helper, *args, **kwargs):
 
                                         # Add to final records
                                         if add_risk_record:
-                                            all_new_records.append(mv_record)
+
+                                            # final verification for exclusions
+                                            if mv_record["risk_object"].lower() not in [
+                                                pattern.lower()
+                                                for pattern in blocklist_risk_object_patterns
+                                            ]:
+                                                all_new_records.append(mv_record)
+                                            else:
+                                                helper.log_warn(
+                                                    'blocklist: the risk_object="{}" is not allowed as per blocklist_risk_object_patterns="{}"'.format(
+                                                        mv_record["risk_object"],
+                                                        blocklist_risk_object_patterns,
+                                                    )
+                                                )
 
                                 else:
 
@@ -816,10 +815,10 @@ def process_event(helper, *args, **kwargs):
                                     for risk_subobject in risk_object_list:
 
                                         # check block list
-                                        if (
-                                            risk_subobject
-                                            in blocklist_risk_object_patterns
-                                        ):
+                                        if risk_subobject.lower() in [
+                                            pattern.lower()
+                                            for pattern in blocklist_risk_object_patterns
+                                        ]:
                                             helper.log_warn(
                                                 'blocklist: the risk_object="{}" is not allowed as per blocklist_risk_object_patterns="{}"'.format(
                                                     risk_subobject,
@@ -885,7 +884,26 @@ def process_event(helper, *args, **kwargs):
 
                                                 # Add to final records
                                                 if add_risk_record:
-                                                    all_new_records.append(mv_record)
+
+                                                    # final verification for exclusions
+                                                    if mv_record[
+                                                        "risk_object"
+                                                    ].lower() not in [
+                                                        pattern.lower()
+                                                        for pattern in blocklist_risk_object_patterns
+                                                    ]:
+                                                        all_new_records.append(
+                                                            mv_record
+                                                        )
+                                                    else:
+                                                        helper.log_warn(
+                                                            'blocklist: the risk_object="{}" is not allowed as per blocklist_risk_object_patterns="{}"'.format(
+                                                                mv_record[
+                                                                    "risk_object"
+                                                                ],
+                                                                blocklist_risk_object_patterns,
+                                                            )
+                                                        )
 
         # Initial exception handler
         except Exception as e:

@@ -147,29 +147,23 @@ class RiskSuperHandler(StreamingCommand):
         # Advanced configuration
         #
 
-        # retrive the list of risk_object block list patterns (optional)
-        try:
-            blocklist_risk_object_patterns_tmp = []
-            blocklist_risk_object_patterns = []
+        # Assuming `confs` and other relevant code is defined above
 
+        def process_value(value):
+            # Split the string by comma
+            items = re.split(r",", value)
+            # Remove quotes from each item and convert to lower case
+            return [item.strip('"').lower() for item in items]
+
+        # retrieve the list of risk_object block list patterns (optional)
+        try:
+            blocklist_risk_object_patterns = []
             for stanza in confs:
                 if stanza.name == "advanced_configuration":
                     for key, value in stanza.content.items():
-                        if key == "blocklist_risk_object_patterns" and value:
-                            blocklist_risk_object_patterns_tmp = re.split(
-                                r',(?=")', value
-                            )
+                        if key == "blocklist_risk_object_patterns":
+                            blocklist_risk_object_patterns = process_value(value)
 
-            # handle double quotes
-            for blocklist_pattern in blocklist_risk_object_patterns_tmp:
-                result = re.match(r"\"([^\"]*)\"", blocklist_pattern)
-                if result:
-                    blocklist_risk_object_patterns.append(result.group(1))
-            logging.debug(
-                'blocklist, a list for risk_object forbidden value was provided blocklist_risk_object_patterns="{}"'.format(
-                    blocklist_risk_object_patterns
-                )
-            )
         except Exception as e:
             logging.error(
                 'failed to retrieve risk_object blocklist with exception="{}"'.format(
@@ -178,29 +172,15 @@ class RiskSuperHandler(StreamingCommand):
             )
             blocklist_risk_object_patterns = []
 
-        # retrive the list of threat_object block list patterns (optional)
+        # retrieve the list of threat_object block list patterns (optional)
         try:
-            blocklist_threat_object_patterns_tmp = []
             blocklist_threat_object_patterns = []
-
             for stanza in confs:
                 if stanza.name == "advanced_configuration":
                     for key, value in stanza.content.items():
-                        if key == "blocklist_threat_object_patterns" and value:
-                            blocklist_threat_object_patterns_tmp = re.split(
-                                r',(?=")', value
-                            )
+                        if key == "blocklist_threat_object_patterns":
+                            blocklist_threat_object_patterns = process_value(value)
 
-            # handle double quotes
-            for blocklist_pattern in blocklist_threat_object_patterns_tmp:
-                result = re.match(r"\"([^\"]*)\"", blocklist_pattern)
-                if result:
-                    blocklist_threat_object_patterns.append(result.group(1))
-            logging.debug(
-                'blocklist, a list for threat_object forbidden value was provided blocklist_threat_object_patterns="{}"'.format(
-                    blocklist_threat_object_patterns
-                )
-            )
         except Exception as e:
             logging.error(
                 'failed to retrieve threat_object blocklist with exception="{}"'.format(
@@ -557,13 +537,14 @@ class RiskSuperHandler(StreamingCommand):
                                     )
 
                                     # check blocklist
-                                    if (
-                                        record[threat_object_field]
-                                        in blocklist_threat_object_patterns
+                                    if any(
+                                        obj.lower()
+                                        == record[threat_object_field].lower()
+                                        for obj in blocklist_threat_object_patterns
                                     ):
-                                        logging.warn(
+                                        logging.warning(
                                             'blocklist: the threat_object="{}" is not allowed as per blocklist_threat_object_patterns="{}"'.format(
-                                                record[risk_object],
+                                                record[threat_object_field],
                                                 blocklist_threat_object_patterns,
                                             )
                                         )
@@ -626,11 +607,11 @@ class RiskSuperHandler(StreamingCommand):
 
                                 # check blocklist (remove from list if blocklisted)
                                 for threat_object in threat_objects_list:
-                                    if (
-                                        threat_object
-                                        in blocklist_threat_object_patterns
+                                    if any(
+                                        obj.lower() == threat_object.lower()
+                                        for obj in blocklist_threat_object_patterns
                                     ):
-                                        logging.warn(
+                                        logging.warning(
                                             'blocklist: the threat_object="{}" is not allowed as per blocklist_threat_object_patterns="{}"'.format(
                                                 threat_object,
                                                 blocklist_threat_object_patterns,
@@ -820,11 +801,11 @@ class RiskSuperHandler(StreamingCommand):
                                     ):
 
                                         # check blocklist
-                                        if (
-                                            record[risk_object]
-                                            in blocklist_risk_object_patterns
-                                        ):
-                                            logging.warn(
+                                        if record[risk_object].lower() in [
+                                            pattern.lower()
+                                            for pattern in blocklist_risk_object_patterns
+                                        ]:
+                                            logging.warning(
                                                 'blocklist: the risk_object="{}" is not allowed as per blocklist_risk_object_patterns="{}"'.format(
                                                     record[risk_object],
                                                     blocklist_risk_object_patterns,
@@ -919,7 +900,22 @@ class RiskSuperHandler(StreamingCommand):
 
                                             # add conditionally
                                             if add_risk_record:
-                                                all_new_records.append(mv_record)
+
+                                                # final verification for exclusions
+                                                if mv_record[
+                                                    "risk_object"
+                                                ].lower() not in [
+                                                    pattern.lower()
+                                                    for pattern in blocklist_risk_object_patterns
+                                                ]:
+                                                    all_new_records.append(mv_record)
+                                                else:
+                                                    logging.warning(
+                                                        'blocklist: the risk_object="{}" is not allowed as per blocklist_risk_object_patterns="{}"'.format(
+                                                            mv_record["risk_object"],
+                                                            blocklist_risk_object_patterns,
+                                                        )
+                                                    )
 
                                     else:
 
@@ -962,7 +958,7 @@ class RiskSuperHandler(StreamingCommand):
 
                                             # if the format separator was incorrectly set, generate a warning message
                                             if format_separator:
-                                                logging.warn(
+                                                logging.warning(
                                                     'uc_ref="{}", the risk_object="{}" has a format_separator="{}" but it comes as a multivalue field instead, this configuration is likely incorrect'.format(
                                                         record[self.uc_ref_field],
                                                         risk_object,
@@ -976,11 +972,12 @@ class RiskSuperHandler(StreamingCommand):
                                         for risk_subobject in risk_object_list:
 
                                             # check block list
-                                            if (
-                                                risk_subobject
-                                                in blocklist_risk_object_patterns
+                                            if any(
+                                                risk_subobject.lower()
+                                                == pattern.lower()
+                                                for pattern in blocklist_risk_object_patterns
                                             ):
-                                                logging.warn(
+                                                logging.warning(
                                                     'blocklist: the risk_object="{}" is not allowed as per blocklist_risk_object_patterns="{}"'.format(
                                                         risk_subobject,
                                                         blocklist_risk_object_patterns,
@@ -1053,9 +1050,26 @@ class RiskSuperHandler(StreamingCommand):
 
                                                     # add conditionally
                                                     if add_risk_record:
-                                                        all_new_records.append(
-                                                            mv_record
-                                                        )
+
+                                                        # final verification for exclusions
+                                                        if mv_record[
+                                                            "risk_object"
+                                                        ].lower() not in [
+                                                            pattern.lower()
+                                                            for pattern in blocklist_risk_object_patterns
+                                                        ]:
+                                                            all_new_records.append(
+                                                                mv_record
+                                                            )
+                                                        else:
+                                                            logging.warning(
+                                                                'blocklist: the risk_object="{}" is not allowed as per blocklist_risk_object_patterns="{}"'.format(
+                                                                    mv_record[
+                                                                        "risk_object"
+                                                                    ],
+                                                                    blocklist_risk_object_patterns,
+                                                                )
+                                                            )
 
             # Initial exception handler
             except Exception as e:
