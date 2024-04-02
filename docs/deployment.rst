@@ -4,7 +4,7 @@ Installation, configuration and usage
 .. admonition:: New with Version 1.0.26: deduplication at the backend level
 
     - Since the release 1.0.26, the super handler alert action and custom command support handling risk duplicates at the backend level.
-    - Duplicated risk events can happen for a number of reasons (overlap in the Risk Rules, etc), are tedious to deal with and impact the Risk worklow and calculations in many ways.
+    - Duplicated risk events can happen for a number of reasons (overlap in the Risk Rules, etc), are tedious to deal with and impact the Risk workflow and calculations in many ways.
     - This works by keeping track of the risk events generated with their factors (use case, risk_object_type, risk_object) in a KVstore collection at the Python level lowest level.
     - The Kvstore collection transforms name is ``risk_superhandler_dedup``.
     - When the risk action is requested, the backend verifies when the latest risk event was generated for the same factors.
@@ -16,13 +16,13 @@ Installation
 
 - Install the Add-on using supported Splunk deployment methods, either via the UI for a standalone Splunk instance, or via the SHC deployer in a Search Head Context
 
-Create your risk base alerting use case lookup referencial
+Create your risk based alerting use case lookup reference
 ##########################################################
 
-Risk Base Lookup file requirements
-==================================
+Risk Based Lookup file requirements
+===================================
 
-**Start by creating your Risk Based Alerting referencial lookup file, the CSV file requires two fields:**
+**Start by creating your Risk Based Alerting reference lookup file, the CSV file requires two fields:**
 
 - A use case unique reference, you can name the column either way, this should reference uniquely the Risk Rule use case, example: ``risk_uc_id``
 
@@ -67,7 +67,7 @@ A first JSON Risk definition example
     [{"search_name": "Threat - UC-EDR-001 - Rule"}, {"risk_object": "dest", "risk_object_type": "system", "risk_score": 10, "risk_message": "Security event detected on endpoint dest=$risk_object$"}]
 
 Defining an additional risk object
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Additionally, our Risk Rule correlation search renders a user information, we can complete our JSON rule with an additional JSON object:**
 
@@ -154,7 +154,7 @@ Defining the threat objects
    :width: 1600px
    :class: with-border
 
-Our final lookup referencial
+Our final lookup reference
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Finally, our lookup is now:**
@@ -169,13 +169,13 @@ Our final lookup referencial
 JSON consistency
 ^^^^^^^^^^^^^^^^
 
-**It is recommended to verify the consistency of the JSON object before saving changes in the referencial lookup:**
+**It is recommended to verify the consistency of the JSON object before saving changes in the reference lookup:**
 
 - https://jsonlint.com/
 
 **What if the JSON object definition is inconsistent?**
 
-If for some reasons, the JSON is not well formated, the backend will raise an exception, example:
+If for some reasons, the JSON is not well formatted, the backend will raise an exception, example:
 
 ::
 
@@ -197,7 +197,7 @@ Enabling the alert action at the Risk Rule correlation search level
 
 Now that we have configured our RBA lookup, the ``Risk Super`` alert action needs to get called at the Risk Rule correlation level, this gets configured via the Correlation Search Editor providing 2 information:
 
-- ``uc_ref_field`` which defines the name of the field containing the use case reference in both the correlation search results and the use case lookup referencial
+- ``uc_ref_field`` which defines the name of the field containing the use case reference in both the correlation search results and the use case lookup reference
 
 - ``uc_lookup_path`` which defines the Splunk home relative system path to the lookup file
 
@@ -352,6 +352,99 @@ This custom command is called ``risksuperhandler`` and behaves entirely as the m
 
 **Which leads to the exact same results in the Risk index, Datamodel and UI.**
 
+Deduplicating Risk Events at the backend level
+##############################################
+
+Deduplicating concept
+=====================
+
+**With the TA-risk-superhandler starting from version 1.0.26, you can rely on the backend to automatically avoid generating duplicated risk events.**
+
+This is is achieved with a simple process, in Python, which involves relying on a Splunk KVstore collection to keep track of the risk factors and the latest time information per risk factor combination:
+
+- When the ``dedup`` option is enabled, either when using the custom command or the Risk alert action, the application interacts with a KVstore collection to keep track of the latest risk event
+- The KVstore collection is named ``risk_superhandler_dedup``
+- The following information are tracked when ``dedup`` is enabled: **mtime, cim_entity_zone, risk_uc_ref, risk_object_type, risk_object**
+- ``mtime`` contains the last epoch time when a risk event was created for the same combination of factors.
+- When calling the backend with ``dedup``, it will automatically check if the ``cim_entity_zone`` field is part of the results record, if so, this information is added to the context.
+- The KVstore ``_key`` value is used as the md5 hash of the combination of the factors:
+
+*if cim_entity_zone is available, the md5 hash is calculated as:*
+
+::
+
+    f"{uc_ref}:{risk_cim_entity_zone}:{risk_object_type}:{risk_object}"
+
+*otherwise:*
+
+::
+
+    f"{uc_ref}:{risk_object_type}:{risk_object}"
+
+- When a new risk event is requested, the backend calculates the time spent in seconds since the latest creation of a risk event for the same md5 hash.
+- It then compares this time with the ``min_sec_since_last_riskevent`` option, which defaults to 30 minutes.
+- If the time spent is less than the ``min_sec_since_last_riskevent`` option, the risk event creation is refused, avoiding the generation of a duplicated risk event.
+
+Demoing the deduplication step by step
+======================================
+
+**Let's consider the following example, we generate a first risk event using makeresults and the custom command:**
+
+*using the custom command:*
+
+::
+
+    | makeresults
+    | eval cim_entity_zone="acme01", dest="acme-endpoint-srv001", user="jdoe", process="bad.exe", file_hash=md5(process)
+    | eval risk_uc_ref="edr-001"
+    | risksuperhandler uc_lookup_path="SplunkEnterpriseSecuritySuite/lookups/risk_uc_ref.csv" uc_ref_field="risk_uc_ref" dedup="True"
+
+*using the alert action:*
+
+::
+
+    | makeresults
+    | eval cim_entity_zone="acme01", dest="acme-endpoint-srv001", user="jdoe", process="bad.exe", file_hash=md5(process)
+    | eval risk_uc_ref="edr-001"
+    | sendalert risk_super param.uc_lookup_path="SplunkEnterpriseSecuritySuite/lookups/risk_uc_ref.csv" param.uc_ref_field="risk_uc_ref" param.dedup="1"
+
+**After running, this command, we can find two risk events:**
+
+.. image:: img/dedup_demo01.png
+   :alt: dedup_demo01.png
+   :align: center
+   :width: 1400px
+   :class: with-border
+
+**Let's look at the KVstore collection:**
+
+::
+
+    | inputlookup risk_superhandler_dedup | eval key=_key
+    | eval _time=mtime    
+
+.. image:: img/dedup_demo02.png
+   :alt: dedup_demo02.png
+   :align: center
+   :width: 1400px
+   :class: with-border
+
+**Let's attempt to run again the same makeresults command, nothing will happen and there won't be no new risk events for the same combination of factors, in the logs we will see:**
+
+::
+
+    (index="cim_modactions" sourcetype="modular_alerts:risk_super") OR (index=_internal sourcetype="risk:superhandler") "duplicate risk"
+
+.. image:: img/dedup_demo03.png
+   :alt: dedup_demo03.png
+   :align: center
+   :width: 1400px
+   :class: with-border
+
+As long as the condition is not satisfied, no new risk event will be created for the same factors, showing up with the same message in the logs.
+
+Once the time spent since the last risk event is higher than the ``min_sec_since_last_riskevent`` option, a new risk event will be created, and the KVstore records will be updated accordingly.
+
 Additional options
 ##################
 
@@ -362,7 +455,7 @@ uc_svc_account
 
 You can use this option to avoid generating risks when the custom command is called unless the user running the command matches this value.
 
-For instamce:
+For instance:
 
 ::
 
@@ -381,13 +474,13 @@ It is meant to be used in combination with the following option:
 
 - min_sec_since_last_riskevent
 
-Minimum seconds since last risk event, if the time spent in seconds since the last registered risk event for this combination of factors is not higher than this value, the event is consdered as a duplicate risk event.
+Minimum seconds since last risk event, if the time spent in seconds since the last registered risk event for this combination of factors is not higher than this value, the event is considered as a duplicate risk event.
 
 Multivalue and string delimited fields
 ======================================
 
-Single and Multivalue fields
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Single and Multi Value fields
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **The risk objects value fields, as well as the threat object value fields can be:**
 
@@ -463,14 +556,14 @@ To do this, either make the application to be visible (it is not visible by defa
 
 The format is a command separated list of patterns between double quotes.
 
-Null and empty values are natively takin in charge when the backend processes the events.
+Null and empty values are natively taken in charge when the backend processes the events.
 
 Blocklist for threat objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**You can define a list of patterns that cannot be accepted for a threat object, if the threat objet matches any of the patterns in the block list, it will not be added to the risk event.**
+**You can define a list of patterns that cannot be accepted for a threat object, if the threat object matches any of the patterns in the block list, it will not be added to the risk event.**
 
-To do this, either make the application to be visible (it is not visible by default) and go in Configuration / Advanced configuration, or configure it trough a local configuration file:
+To do this, either make the application to be visible (it is not visible by default) and go in Configuration / Advanced configuration, or configure it through a local configuration file:
 
 *local/ta_risk_superhandler_settings.conf*
 
@@ -481,7 +574,7 @@ To do this, either make the application to be visible (it is not visible by defa
 
 The format is a command separated list of patterns between double quotes.
 
-Null and empty values are natively takin in charge when the backend processes the events.
+Null and empty values are natively taken in charge when the backend processes the events.
 
 Troubleshoot
 ############
