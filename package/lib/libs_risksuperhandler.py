@@ -70,8 +70,23 @@ def handler_dedup_risk(
     risk_object_type = risk_record["risk_object_type"]
     risk_object = risk_record["risk_object"]
 
+    # take into account the cim_entity_zone, if any
+    risk_cim_entity_zone = risk_record.get("cim_entity_zone", None)
+
     # define unique factor and its md5
-    mv_record_key_factors = f"{uc_ref}:{risk_object_type}:{risk_object}"
+    if risk_cim_entity_zone:
+        mv_record_key_factors = (
+            f"{uc_ref}:{risk_cim_entity_zone}:{risk_object_type}:{risk_object}"
+        )
+
+    else:
+        mv_record_key_factors = f"{uc_ref}:{risk_object_type}:{risk_object}"
+
+    # for visualization purposes
+    if not risk_cim_entity_zone:
+        risk_cim_entity_zone = "N/A"
+
+    # calculate the md5
     mv_record_key_md5 = hashlib.md5(mv_record_key_factors.encode()).hexdigest()
 
     # check if mv_record_key_factors is in the dedup collection
@@ -114,6 +129,7 @@ def handler_dedup_risk(
                     json.dumps(
                         {
                             "mtime": time.time(),
+                            "cim_entity_zone": risk_cim_entity_zone,
                             "risk_uc_ref": uc_ref,
                             "risk_object_type": risk_object_type,
                             "risk_object": risk_object,
@@ -142,6 +158,7 @@ def handler_dedup_risk(
                     {
                         "_key": mv_record_key_md5,
                         "mtime": time.time(),
+                        "cim_entity_zone": risk_cim_entity_zone,
                         "risk_uc_ref": uc_ref,
                         "risk_object_type": risk_object_type,
                         "risk_object": risk_object,
