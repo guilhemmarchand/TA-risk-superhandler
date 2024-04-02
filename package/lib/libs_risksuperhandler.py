@@ -62,9 +62,12 @@ def handler_dedup_risk(
     """
     Deduplication handler for risk events.
 
-    return: add_risk_record (Boolean)
+    return: add_risk_record (Boolean), add_risk_result_msg (string)
 
     """
+
+    # init add_risk_result_msg
+    add_risk_result_msg = ""
 
     # set risk_object_type / risk_object
     risk_object_type = risk_record["risk_object_type"]
@@ -105,22 +108,16 @@ def handler_dedup_risk(
         time_diff = current_time - last_risk_time
         logging.debug(f'context="dedup", time_diff="{time_diff}"')
         if time_diff < min_sec_since_last_riskevent:
-            logging.info(
-                f'context="dedup", uc_ref="{uc_ref}", mv_record_key_factors="{mv_record_key_factors}" is a duplicate risk event, the last risk event was generated {time_diff} seconds ago, the minimum time is {min_sec_since_last_riskevent} seconds'
-            )
-
+            add_risk_result_msg = f'context="dedup", uc_ref="{uc_ref}", mv_record_key_factors="{mv_record_key_factors}" is a duplicate risk event, the last risk event was generated {time_diff} seconds ago, the minimum time is {min_sec_since_last_riskevent} seconds'
             # return
-            return False
+            return False, add_risk_result_msg
 
         else:
 
             #
             # Accepted risk record
             #
-
-            logging.debug(
-                f'context="dedup", uc_ref="{uc_ref}", mv_record_key_factors="{mv_record_key_factors}" is not a duplicate risk event, the last risk event was generated {time_diff} seconds ago, the minimum time is {min_sec_since_last_riskevent} seconds'
-            )
+            add_risk_result_msg = f'context="dedup", uc_ref="{uc_ref}", mv_record_key_factors="{mv_record_key_factors}" is not a duplicate risk event, the last risk event was generated {time_diff} seconds ago, the minimum time is {min_sec_since_last_riskevent} seconds'
 
             # update the KVstore record
             try:
@@ -141,16 +138,15 @@ def handler_dedup_risk(
                     f'context="dedup", failed to update the dedup record, exception="{e}"'
                 )
 
-            return True
+            return True, add_risk_result_msg
 
     else:
         #
         # New risk record: first time we see this combination of factors
         #
 
-        logging.debug(
-            f'context="dedup", uc_ref="{uc_ref}", mv_record_key_factors="{mv_record_key_factors}" is not in the dedup collection'
-        )
+        # add_risk_result_msg
+        add_risk_result_msg = f'context="dedup", uc_ref="{uc_ref}", mv_record_key_factors="{mv_record_key_factors}" is not a duplicate risk event, it is the first time we see this combination of factors'
 
         try:
             collection.data.insert(
@@ -170,4 +166,4 @@ def handler_dedup_risk(
                 f'context="dedup", failed to insert the dedup record, exception="{str(e)}"'
             )
 
-        return True
+        return True, add_risk_result_msg

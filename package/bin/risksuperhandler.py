@@ -883,13 +883,17 @@ class RiskSuperHandler(StreamingCommand):
                                             # check if mv_record_key_factors is in the dedup collection
                                             if self.dedup:
                                                 try:
-                                                    add_risk_record = handler_dedup_risk(
+                                                    (
+                                                        add_risk_record,
+                                                        add_risk_result_msg,
+                                                    ) = handler_dedup_risk(
                                                         self.min_sec_since_last_riskevent,
                                                         record[self.uc_ref_field],
                                                         mv_record,
                                                         collection_dict,
                                                         collection,
                                                     )
+                                                    logging.info(add_risk_result_msg)
                                                 except Exception as e:
                                                     logging.error(
                                                         'function handler_dedup_risk, failed to handle dedup risk with exception="{}"'.format(
@@ -1031,7 +1035,10 @@ class RiskSuperHandler(StreamingCommand):
                                                     # check if mv_record_key_factors is in the dedup collection
                                                     if self.dedup:
                                                         try:
-                                                            add_risk_record = handler_dedup_risk(
+                                                            (
+                                                                add_risk_record,
+                                                                add_risk_result_msg,
+                                                            ) = handler_dedup_risk(
                                                                 self.min_sec_since_last_riskevent,
                                                                 record[
                                                                     self.uc_ref_field
@@ -1039,6 +1046,9 @@ class RiskSuperHandler(StreamingCommand):
                                                                 mv_record,
                                                                 collection_dict,
                                                                 collection,
+                                                            )
+                                                            logging.info(
+                                                                add_risk_result_msg
                                                             )
                                                         except Exception as e:
                                                             logging.error(
