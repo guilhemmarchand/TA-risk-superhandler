@@ -6,6 +6,7 @@ Version 1.0.27
 
 - enhancement - Dedup - Automatically take into account cim_entity_zone if available in the upstream results #18
 - change - Upgrade to Splunk Python SDK 2.0.1 #17
+- logging for dedup - Ensures consistent logging for dedup operations for both the custom command and alert action #20
 
 Version 1.0.26
 ==============
