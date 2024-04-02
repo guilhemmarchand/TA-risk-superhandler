@@ -735,13 +735,16 @@ def process_event(helper, *args, **kwargs):
                                         # check if mv_record_key_factors is in the dedup collection
                                         if dedup:
                                             try:
-                                                add_risk_record = handler_dedup_risk(
-                                                    min_sec_since_last_riskevent,
-                                                    record[uc_ref_field],
-                                                    mv_record,
-                                                    collection_dict,
-                                                    collection,
+                                                add_risk_record, add_risk_result_msg = (
+                                                    handler_dedup_risk(
+                                                        min_sec_since_last_riskevent,
+                                                        record[uc_ref_field],
+                                                        mv_record,
+                                                        collection_dict,
+                                                        collection,
+                                                    )
                                                 )
+                                                helper.log_info(add_risk_result_msg)
                                             except Exception as e:
                                                 helper.log_error(
                                                     'function handler_dedup_risk, failed to handle dedup risk with exception="{}"'.format(
@@ -867,12 +870,18 @@ def process_event(helper, *args, **kwargs):
                                                 # check if mv_record_key_factors is in the dedup collection
                                                 if dedup:
                                                     try:
-                                                        add_risk_record = handler_dedup_risk(
+                                                        (
+                                                            add_risk_record,
+                                                            add_risk_result_msg,
+                                                        ) = handler_dedup_risk(
                                                             min_sec_since_last_riskevent,
                                                             record[uc_ref_field],
                                                             mv_record,
                                                             collection_dict,
                                                             collection,
+                                                        )
+                                                        helper.log_info(
+                                                            add_risk_result_msg
                                                         )
                                                     except Exception as e:
                                                         helper.log_error(
