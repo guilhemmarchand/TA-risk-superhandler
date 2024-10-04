@@ -1,6 +1,11 @@
 Release notes
 -------------
 
+Version 1.0.28
+==============
+
+- Refresh Splunk UCC, Splunk Python SDK and others libs to address Appinspect vetting removal due to outdated dependencies
+
 Version 1.0.27
 ==============
 
